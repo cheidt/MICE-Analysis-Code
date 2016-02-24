@@ -32,11 +32,20 @@ class Analyize(object):
         for cut_station in range(1,6):
           temp = self.spaces[detector][event]
           temp.pop(cut_station, None)
-          self.Draw_Line(temp)
-    
+          line = self.Draw_Line(temp)
+
   def Draw_Line(self, seeds):
-    for station in seeds:
-      pass
-      
-      
-      
+    temp = {}
+    for dim in ["x_pos", "y_pos"]:
+      for station in seeds:
+        a1 +=  2*(seeds[station]["z_pos"]**2)
+        a2 += -2*(seeds[station][dim]*seeds[station]["z_pos"])
+        a3 +=  2*(seeds[station]["z_pos"])
+        a4 +=  8
+        a5 += -2*(seeds[station][dim])
+        a6 =   a3
+      m_dim = "m_"+dim
+      b_dim = "b_"+dim
+      temp[m_dim] = (a3*a5/a4 - a2)/(a1 - a3*a6/a4)
+      temp[b_dim] = -m*a1/a3 - a2/a3
+    return temp

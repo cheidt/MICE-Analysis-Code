@@ -3,35 +3,32 @@
   #  verb_math scripts
 check_config = {
 
-# Limits
-"event_cut":5,          # Number of events to process, -1 for all events
+# Limits and Cuts
+"event_cut":5,              # Number of events to process, -1 for all events
 "event_out":10,             # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 "T_Data":11,                # Number of reconstructed track points with data
+"TtT_trip_req":5,           # Required triplets PR for TOF_to_TOF_Tkr_Res
 "P_Cut":0.05,               # Lower limit for reconstructed track P-values
+"upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1 
+"upstream_Tmax":29.83,      # Maximum timing for TOF0 to TOF1
+"downstream_Tmin":28.04,    # Minimum timing for TOF1 to TOF2 
+"downstream_Tmax":34.84,    # Maximum timing for TOF1 to TOF2
 
 
 # Lists
 "Tker_List":["upstream", "downstream"],          # Labels for tracking detectors
 "TOF_List":["tof0", "tof1", "tof2"],             # Labels for TOF detectors
-"Station_Location_List":{0:{5:[13963.04,13962.39,13961.73], \
-                            4:[14313.11,14312.16,14311.81], \
-                            3:[14613.04,14612.39,14611.74], \
-                            2:[14862.04,14861.39,14860.74], \
-                            1:[15062.94,15062.28,15061.63]},\
-                         1:{1:[18848.41,18849.07,18849.72], \
-                            2:[19048.38,19049.03,19049.68], \
-                            3:[19298.23,19298.88,19299.54], \
-                            4:[19598.23,19598.88,19599.53], \
-                            5:[19948.14,19948.79,19949.45]} },
 
 
-"ignore_list":{"ignore_SP_to_Virt": False,         \
-              "ignore_SP_Fill_ROOT": False,        \
-              "ignore_Virt_Fill_ROOT": False,      \
-              "ignore_TOF_Timing_Info": True,      \
-              "ignore_Generate_Virtual_Map": True, \
-              "ignore_Station_Alignment": False},
+# Analysis functions, turns functions On(False)/Off(True)
+"ignore_SP_to_Virt":             False,
+"ignore_SP_Fill_ROOT":           False,
+"ignore_Virt_Fill_ROOT":         False,
+"ignore_TOF_Timing_Info":        True,
+"ignore_Generate_Virtual_Map":   True,
+"ignore_Station_Alignment":      True,
+"ignore_TOF_to_TOF_Tkr_Res":     True,
 
 
 # Counters

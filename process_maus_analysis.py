@@ -156,6 +156,34 @@ class Process:
     else:
       timing = -10000.
       return timing
+      
+#########################################################################################
+  # Reads in TOF1 and TOF2 positions and draws a line between the two.  Space
+  #   points are transformed into global coordinates and the residuals between
+  #   where the TOF to TOF line cross the tracker plane and space points are 
+  #   calculated.
+  def TOF_to_TOF_Tkr_Res(self, tracks, tof1, tof2):
+    for detector in tracks
+      if tracks[detector]["triples"] < _config["TtT_trip_req"]:
+        continue
+      TOF_distance = tof1["z_pos"] - tof2["z_pos"]
+      x_change = tof1["x_pos"] - tof2["x_pos"]
+      y_change = tof1["y_pos"] - tof2["y_pos"]
+      x_slope  = x_change/TOF_distance
+      y_slope  = y_change/TOF_distance
+
+      for spaces in track[detector]["seeds"]:
+        for station in spaces[detector]:
+          space = spaces[detector][station]
+          z_pos = space["z_glob_pos"]
+          distance = z_pos - tof1["z_pos"]
+          expected_x = tof1["x_pos"] + distance * x_slope
+          residual_x = space["x_glob_pos"] - expected_x
+          expected_y = tof1["y_pos"] + distance * y_slope
+          residual_y = space["y_glob_pos"] - expected_y
+          self.tof_to_tof_residual["up"][st].Fill(residual_x,residual_y)
+          self.tof_to_tof_residual_x["up"][st].Fill(residual_x)
+          self.tof_to_tof_residual_y["up"][st].Fill(residual_y)
 
 #########################################################################################
   # Backend functions
@@ -165,44 +193,54 @@ class Process:
   # Calls cuts and analysis routines.  Passes in data containers, event numbers
   #   and histograms to be filled.
   def Call_Analysis(self):
-    if _config["ignore_list"]["ignore_Generate_Virtual_Map"] == False:
+    TOF_timing = {"upstream":False, "downstream":False}
+    if _config["ignore_Generate_Virtual_Map"] == False:
       self.Generate_Virtual_Map(self.data["virtual_points"], \
                                 self.data["tracker_tracks"])
 
-    if _config["ignore_list"]["ignore_SP_to_Virt"] == False and \
-       "virtual_points" in self.data and \
-       "tracker_space_points" in self.data:
+    if _config["ignore_SP_to_Virt"] == False and \
+               "virtual_points" in self.data and \
+               "tracker_space_points" in self.data:
       self.SP_to_Virt(self.data["virtual_points"], \
                            self.data["tracker_space_points"])
 
-    if _config["ignore_list"]["ignore_SP_Fill_ROOT"] == False and \
-       "tracker_space_points" in self.data:
+    if _config["ignore_SP_Fill_ROOT"] == False and \
+               "tracker_space_points" in self.data:
       self.SP_Fill_ROOT(self.data["tracker_space_points"])
 
-    if _config["ignore_list"]["ignore_Virt_Fill_ROOT"] == False and \
-       "virtual_points" in self.data:
+    if _config["ignore_Virt_Fill_ROOT"] == False and \
+               "virtual_points" in self.data:
       self.Virt_Fill_ROOT(self.data["virtual_points"])
 
-    TOF_timing = {"upstream":-10000, "downstream":-10000}
-    if _config["ignore_list"]["ignore_TOF_Timing_Info"] == False and \
-       "TOF0_space_points" in self.data and \
-       "TOF1_space_points" in self.data:
-      TOF_timing["upstream"] = self.TOF_Timing_Info(\
-                               self.data["TOF0_space_points"], \
-                               self.data["TOF1_space_points"])
-    if _config["ignore_list"]["ignore_TOF_Timing_Info"] == False and \
-       "TOF1_space_points" in self.data and \
-       "TOF2_space_points" in self.data:
-      TOF_timing["downstream"] = self.TOF_Timing_Info(\
-                                 self.data["TOF1_space_points"], \
-                                 self.data["TOF2_space_points"])
+    if _config["ignore_TOF_Timing_Info"] == False and \
+               "TOF0_space_points" in self.data and \
+               "TOF1_space_points" in self.data:
+      time = self.TOF_Timing_Info(self.data["TOF0_space_points"], \
+                                  self.data["TOF1_space_points"])
+      if time > _config["upstream_Tmin"] and \
+         time < _config["upstream_Tmax"]:
+        TOF_timing["upstream"] = True
+    if _config["ignore_TOF_Timing_Info"] == False and \
+               "TOF1_space_points" in self.data and \
+               "TOF2_space_points" in self.data:
+      time = self.TOF_Timing_Info(self.data["TOF1_space_points"], \
+                                  self.data["TOF2_space_points"])
+      if time > _config["Downstream_Tmin"] and \
+         time < _config["Downstream_Tmax"]:
+        TOF_timing["downstream"] = True
 
-    if _config["ignore_list"]["ignore_Station_Alignment"] == False and \
-       "tracker_straight_pr" in self.data:
-#      Collect_SP = getattr(_analyize.Analyize,StS_Collect_Space_Points)
-#      Collect_SP(self.data["tracker_straight_pr"])
+    if _config["ignore_Station_Alignment"] == False and \
+               "tracker_straight_pr" in self.data:
       self.a.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
-#      _analyize.StS_Collect_Space_Points()
+      
+    if _config["ignore_TOF_to_TOF_Tkr_Res"]  == False and \
+               "tracker_straight_pr" in self.data and \
+               "TOF1_space_points" in self.data and \
+               "TOF2_space_points" in self.data and \
+               TOF_timing["downstream"] == True:
+      self.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"] \
+                              self.data["TOF1_space_points"] \
+                              self.data["TOF2_space_points"])
 
 #########################################################################################
   #

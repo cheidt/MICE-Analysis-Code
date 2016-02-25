@@ -5,6 +5,10 @@
 
 import config_maus_analysis as _config
 
+#########################################################################################
+  # Control function called directly from process routines.  Reads in single
+  #   MICE event in MAUS format and returns nestled dictionary with all event
+  #   information.
 def Fill_from_Data(recon, mc, is_recon, is_mc):
   results = {}
   if is_recon:

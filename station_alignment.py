@@ -39,6 +39,17 @@ class ST_Alignment(object):
           y_exp = line["my"]*space["z_glob_pos"]+line["by"]
           y_res = y_exp - space["y_glob_pos"]
 
+          name  = "st_st_residual"
+          title = "4 Station Residual"
+          i = "TKU" if detector == "upstream" else "TKD"
+          self.o.Fill(name, title, x_res, y_res, \
+                      500, -250 , 250, 500, -250 , 250, \
+                      detector=i, station=cut_station))
+
+          self.Find_Coefficents(space, x_exp, y_exp)
+
+    self.o.Write()
+
   def Draw_Line(self, seeds):
     temp = {}
     for dim in ["x", "y"]:
@@ -55,3 +66,7 @@ class ST_Alignment(object):
       temp[m_dim] = (a3*a5/a4 - a2)/(a1 - a3*a6/a4)
       temp[b_dim] = -m*a1/a3 - a2/a3
     return temp
+
+  def Find_Coefficents(self, space, x_exp, y_exp):
+    pass
+    

@@ -5,7 +5,7 @@ from config_maus_analysis import analysis_config as _config
 class ST_Alignment(object):
   def __init__ (self):
     print "INITALIZING ALIGNMENT"
-    self.o = _output.Output("ST_Alignment")
+    self.o = _output.Output("st_alignment")
     self.spaces = {"upstream":{}, \
                  "downstream":{}}
     self.count  = 0
@@ -29,22 +29,29 @@ class ST_Alignment(object):
     for detector in self.spaces:
       for event in self.spaces[detector]:
         for cut_station in range(1,6):
+          space = self.spaces[detector][event][cut_station]
           temp = self.spaces[detector][event]
           temp.pop(cut_station, None)
           line = self.Draw_Line(temp)
+          
+          x_exp = line["mx"]*space["z_glob_pos"]+line["bx"]
+          x_res = x_exp - space["x_glob_pos"]
+          y_exp = line["my"]*space["z_glob_pos"]+line["by"]
+          y_res = y_exp - space["y_glob_pos"]
 
   def Draw_Line(self, seeds):
     temp = {}
-    for dim in ["x_pos", "y_pos"]:
+    for dim in ["x", "y"]:
+      pos = dim+"_pos"
       for station in seeds:
         a1 +=  2*(seeds[station]["z_pos"]**2)
-        a2 += -2*(seeds[station][dim]*seeds[station]["z_pos"])
+        a2 += -2*(seeds[station][pos]*seeds[station]["z_pos"])
         a3 +=  2*(seeds[station]["z_pos"])
         a4 +=  8
-        a5 += -2*(seeds[station][dim])
+        a5 += -2*(seeds[station][pos])
         a6 =   a3
-      m_dim = "m_"+dim
-      b_dim = "b_"+dim
+      m_dim = "m"+dim
+      b_dim = "b"+dim
       temp[m_dim] = (a3*a5/a4 - a2)/(a1 - a3*a6/a4)
       temp[b_dim] = -m*a1/a3 - a2/a3
     return temp

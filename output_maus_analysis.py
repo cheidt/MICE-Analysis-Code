@@ -1,9 +1,10 @@
 import ROOT
+from config_maus_analysis import out_config as _config
 
 class Output(object):
   def __init__(self, type):
-    print "INITALIZING OUTPUTTER"
-    print type
+    print "INITALIZING " +type.upper()+ " OUTPUTTER"
+    self.name = type
     self.hist_container = {}
 
   def Fill(self, name, title, *args, **kwargs):
@@ -31,7 +32,8 @@ class Output(object):
                                                         args[3])
 
   def Write(self):
-    out_root = ROOT.TFile("test_new_output.root",'RECREATE')
+    file_name = self.name + _config["output_file"]
+    out_root = ROOT.TFile(file_name,'RECREATE')
     for name in self.hist_container:
       self.hist_container[name].Write()
     out_root.Close()

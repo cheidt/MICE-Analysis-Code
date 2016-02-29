@@ -2,9 +2,8 @@
   # Contains all the constants and predefined variables need for all 
   #  verb_math scripts
 check_config = {
-
 # Limits and Cuts
-"event_cut":5,             # Number of events to process, -1 for all events
+"event_cut":-5,             # Number of events to process, -1 for all events
 "event_out":10,             # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 "T_Data":11,                # Number of reconstructed track points with data
@@ -42,13 +41,12 @@ check_config = {
 # Maus data
 #"data_identifier":"7417",
 #"data_directory":"/vols/fets2/heidt/offline/data/7417/",
-"data_identifier":"maus_output_2.0.0_123.root",
+"data_identifier":"maus_output_geo_123_geo.root",
 "data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 "output_file":"testing.root"
 }
 
 fill_config = {
-
 "Virtual_to_Tracker_Map":{ 31:[0,5,2], 32:[0,5,1], 33:[0,5,0], \
                            35:[0,4,2], 36:[0,4,1], 37:[0,4,0], \
                            39:[0,3,2], 40:[0,3,1], 41:[0,3,0], \
@@ -63,7 +61,9 @@ fill_config = {
 }
 
 analysis_config = {
-
 "Number_of_Points": 5,
+}
 
+out_config = {
+"output_file":"_output_geo_123_geo.root"
 }

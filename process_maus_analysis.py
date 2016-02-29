@@ -23,8 +23,6 @@ class Process:
 #########################################################################################
   # Reads MICE spill data
   def Read_Spills(self):
-  # Creates the container ROOT files and loads up the MAUS processed file.
-    self.Make_ROOT()
     file_in = self.Load_file()
     print "Reading MAUS processed file: ",file_in
     root_file = ROOT.TFile(file_in, "READ") 
@@ -100,77 +98,6 @@ class Process:
     file.write(config_dict)
 
 #########################################################################################
-  #
-  """
-  def SP_to_Virt(self, virtuals, spaces):
-    for detector in spaces:
-      for station in spaces[detector]:
-        if len(spaces[detector][station]) == 1:
-          for virtual in virtuals[detector][station]:
-            if virtual["plane"] == 0:
-              space   = spaces[detector][station][0]
-              x_res   = virtual["x_pos"] - space["x_glob_pos"]
-              y_res   = virtual["y_pos"] - space["y_glob_pos"]
-              i = "TKU" if detector == "upstream" else "TKD"
-              name  = "SP_to_Virt"
-              title = "Residuals MC Truth to Space Point" 
-              self.o.Fill(name, title, x_res, y_res, \
-                          500, -10, 10, 500, -10, 10, \
-                          detector=i, station=station)
-              name = "SP_to_Virt_Hist_x"
-              title = "Residuals MC Truth to Space Point X"
-              self.o.Fill(name, title, x_res, 500, -10, 10, \
-                          detector=i, station=station)
-              name = "SP_to_Virt_Hist_x"
-              title = "Residuals MC Truth to Space Point Y"
-              self.o.Fill(name, title, x_res, 500, -10, 10, \
-                          detector=i, station=station)
-                          """
-
-#########################################################################################
-  #
-  def SP_Fill_ROOT(self, space_points):
-    for detector in space_points:
-      for station in space_points[detector]:
-        if len(space_points[detector][station]) == 1:
-          x_pos   = space_points[detector][station][0]["x_glob_pos"]
-          y_pos   = space_points[detector][station][0]["y_glob_pos"]
-          i = "U" if detector == "upstream" else "D"
-          self.SP_Pos[i][station].Fill(x_pos, y_pos)
-          if space_points[detector][station][0]["type"] == 3:
-            self.Triplet_Pos[i][station].Fill(x_pos, y_pos)
-          else:
-            self.Doublet_Pos[i][station].Fill(x_pos, y_pos)
-
-#########################################################################################
-  #
-  def Virt_Fill_ROOT(self, virtuals):
-    for detector in virtuals:
-      if detector == "uncat":
-        for virtual in virtuals[detector]:
-          x_pos = virtual["x_pos"]
-          y_pos = virtual["y_pos"]
-          self.Virt_Pos["UnCat"].Fill(x_pos, y_pos)
-      else:
-        for station in virtuals[detector]:
-          for virtual in virtuals[detector][station]:
-            x_pos   = virtual["x_pos"]
-            y_pos   = virtual["y_pos"]
-            i = "U" if detector == "upstream" else "D"
-            self.Virt_Pos[i][station].Fill(x_pos, y_pos)
-
-#########################################################################################
-  #
-  def TOF_Timing_Info(self, up_tof, down_tof):
-    if len(up_tof) == 1 and \
-       len(down_tof) == 1:
-      timing = up_tof["time"] - down_tof["time"]
-      return timing
-    else:
-      timing = -10000.
-      return timing
-      
-#########################################################################################
   # Reads in TOF1 and TOF2 positions and draws a line between the two.  Space
   #   points are transformed into global coordinates and the residuals between
   #   where the TOF to TOF line cross the tracker plane and space points are 
@@ -219,25 +146,25 @@ class Process:
 
     if _config["ignore_SP_Fill_ROOT"] == False and \
                "tracker_space_points" in self.data:
-      self.SP_Fill_ROOT(self.data["tracker_space_points"])
+      self.analysis.SP_Fill_ROOT(self.data["tracker_space_points"])
 
     if _config["ignore_Virt_Fill_ROOT"] == False and \
                "virtual_points" in self.data:
-      self.Virt_Fill_ROOT(self.data["virtual_points"])
+      self.analysis.Virt_Fill_ROOT(self.data["virtual_points"])
 
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF0_space_points" in self.data and \
                "TOF1_space_points" in self.data:
-      time = self.TOF_Timing_Info(self.data["TOF0_space_points"], \
-                                  self.data["TOF1_space_points"])
+      time = self.analysis.TOF_Timing_Info(self.data["TOF0_space_points"], \
+                                           self.data["TOF1_space_points"])
       if time > _config["upstream_Tmin"] and \
          time < _config["upstream_Tmax"]:
         TOF_timing["upstream"] = True
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data:
-      time = self.TOF_Timing_Info(self.data["TOF1_space_points"], \
-                                  self.data["TOF2_space_points"])
+      time = self.analysis.TOF_Timing_Info(self.data["TOF1_space_points"], \
+                                           self.data["TOF2_space_points"])
       if time > _config["Downstream_Tmin"] and \
          time < _config["Downstream_Tmax"]:
         TOF_timing["downstream"] = True
@@ -260,149 +187,7 @@ class Process:
   def Output(self):
     self.st_align.Station_Alignment()
     self.analysis.Write()
-    out_root = ROOT.TFile(_config["output_file"],'RECREATE')
-    self.Virt_Pos["UnCat"].Write()
-    for st in range(1, 6):
-      self.SP_to_Virt_Hist["U"][st].Write()
-      self.SP_to_Virt_Hist["D"][st].Write()
-      self.SP_to_Virt_Hist_x["U"][st].Write()
-      self.SP_to_Virt_Hist_x["D"][st].Write()
-      self.SP_to_Virt_Hist_y["U"][st].Write()
-      self.SP_to_Virt_Hist_y["D"][st].Write()
-      self.Triplet_Pos["U"][st].Write()
-      self.Triplet_Pos["D"][st].Write()
-      self.Doublet_Pos["U"][st].Write()
-      self.Doublet_Pos["D"][st].Write()
-      self.SP_Pos["U"][st].Write()
-      self.SP_Pos["D"][st].Write()
-#      self.Virt_Pos["U"][st].Write()
-#      self.Virt_Pos["D"][st].Write()
-      
-    gROOT.SetBatch()
-    c1 = ROOT.TCanvas("c1","Space Point Positions UpStream",1200, 800)
-    ROOT.SetOwnership(c1, False)
-    c1.Divide(3,2)
-    c1.cd(1)
-    self.SP_to_Virt_Hist["U"][1].Draw()
-    c1.cd(2)
-    self.SP_to_Virt_Hist["U"][2].Draw()
-    c1.cd(3)
-    self.SP_to_Virt_Hist["U"][3].Draw()
-    c1.cd(4)
-    self.SP_to_Virt_Hist["U"][4].Draw()
-    c1.cd(5)
-    self.SP_to_Virt_Hist["U"][5].Draw()
-    c1.Print("Recon_Truth_Residual_Up.pdf")
-
-    c2 = ROOT.TCanvas("c2","Space Point Positions DownStream",1200, 800)
-    ROOT.SetOwnership(c2, False)
-    c2.Divide(3,2)
-    c2.cd(1)
-    self.SP_to_Virt_Hist["D"][1].Draw()
-    c2.cd(2)
-    self.SP_to_Virt_Hist["D"][2].Draw()
-    c2.cd(3)
-    self.SP_to_Virt_Hist["D"][3].Draw()
-    c2.cd(4)
-    self.SP_to_Virt_Hist["D"][4].Draw()
-    c2.cd(5)
-    self.SP_to_Virt_Hist["D"][5].Draw()
-    c2.Print("Recon_Truth_Residual_Down.pdf")
-    
-    c3 = ROOT.TCanvas("c3","Virtual Point Positions UpStream",1200, 800)
-    ROOT.SetOwnership(c3, False)
-    c3.Divide(3,2)
-    c3.cd(1)
-    self.Virt_Pos["U"][1].Draw()
-    c3.cd(2)
-    self.Virt_Pos["U"][2].Draw()
-    c3.cd(3)
-    self.Virt_Pos["U"][3].Draw()
-    c3.cd(4)
-    self.Virt_Pos["U"][4].Draw()
-    c3.cd(5)
-    self.Virt_Pos["U"][5].Draw()
-
-    c4 = ROOT.TCanvas("c4","Virtual Point Positions DownStream",1200, 800)
-    ROOT.SetOwnership(c4, False)
-    c4.Divide(3,2)
-    c4.cd(1)
-    self.Virt_Pos["D"][1].Draw()
-    c4.cd(2)
-    self.Virt_Pos["D"][2].Draw()
-    c4.cd(3)
-    self.Virt_Pos["D"][3].Draw()
-    c4.cd(4)
-    self.Virt_Pos["D"][4].Draw()
-    c4.cd(5)
-    self.Virt_Pos["D"][5].Draw()
-
-    out_root.Close()
     raw_input("Press Enter to Exit")
-
-#########################################################################################
-  # Creates the container root file that will be passed around script.
-  def Make_ROOT(self):
-    print "Creating empty ROOT file"
-    self.SP_to_Virt_Hist   = {"U":{},"D":{}}
-    self.SP_to_Virt_Hist_x = {"U":{},"D":{}}
-    self.SP_to_Virt_Hist_y = {"U":{},"D":{}}
-    self.SP_Pos            = {"U":{},"D":{}}
-    self.Virt_Pos          = {"U":{},"D":{}}
-    self.Triplet_Pos       = {"U":{},"D":{}}
-    self.Doublet_Pos       = {"U":{},"D":{}}
-    self.Virt_Pos["UnCat"] = ROOT.TH2D("Virt_Pos", \
-                                         "Virtual Space Point Position", \
-                                         400, -400 , 400, 400, -400 , 400)
-    for st in range(1,6):
-      self.SP_to_Virt_Hist["U"][st] = ROOT.TH2D("SP_to_Virt_U%i" % st, \
-                                                "Residual Virtual Plane to \
-                                                Tracker Space Point TKU %i " % st, \
-                                                500, -10, 10, 500, -10, 10)
-      self.SP_to_Virt_Hist["D"][st] = ROOT.TH2D("SP_to_Virt_D%i" % st, \
-                                                "Residual Virtual Plane to \
-                                                Tracker Space Point TKD %i " % st, \
-                                                500, -10, 10, 500, -10, 10)
-      self.SP_to_Virt_Hist_x["U"][st] = ROOT.TH1D("SP_to_Virt_U%i_X" % st, \
-                                                  "Residual Virtual Plane to \
-                                                  Tracker Space Point TKU %i X" % st, \
-                                                  500, -10, 10)
-      self.SP_to_Virt_Hist_x["D"][st] = ROOT.TH1D("SP_to_Virt_D%i_X" % st, \
-                                                  "Residual Virtual Plane to \
-                                                  Tracker Space Point TKD %i X" % st, \
-                                                  500, -10, 10)
-      self.SP_to_Virt_Hist_y["U"][st] = ROOT.TH1D("SP_to_Virt_U%i_Y" % st, \
-                                                  "Residual Virtual Plane to \
-                                                  Tracker Space Point TKU %i Y" % st, \
-                                                  500, -10, 10)
-      self.SP_to_Virt_Hist_y["D"][st] = ROOT.TH1D("SP_to_Virt_D%i_Y" % st, \
-                                                  "Residual Virtual Plane to \
-                                                  Tracker Space Point TKD %i Y" % st, \
-                                                  500, -10, 10)
-      self.Triplet_Pos["U"][st]   = ROOT.TH2D("Triplet_Pos_U%i" %st, \
-                                         "Tracker SP Triplets TKU %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.Triplet_Pos["D"][st]   = ROOT.TH2D("Triplet_Pos_D%i" %st, \
-                                         "Tracker SP Triplets TKD %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.Doublet_Pos["U"][st]   = ROOT.TH2D("Doublet_Pos_U%i" %st, \
-                                         "Tracker SP Doublets TKU %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.Doublet_Pos["D"][st]   = ROOT.TH2D("Doublet_Pos_D%i" %st, \
-                                         "Tracker SP Doublets TKD %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.SP_Pos["U"][st]   = ROOT.TH2D("SP_Pos_U%i" %st, \
-                                         "Tracker Space Point Position TKU %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.SP_Pos["D"][st]   = ROOT.TH2D("SP_Pos_D%i" %st, \
-                                         "Tracker Space Point Position TKD %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.Virt_Pos["U"][st] = ROOT.TH2D("Virt_Pos_U%i" %st, \
-                                         "Virtual Space Point Position TKU %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
-      self.Virt_Pos["D"][st] = ROOT.TH2D("Virt_Pos_D%i" %st, \
-                                         "Virtual Space Point Position TKD %i" %st, \
-                                         250, -250 , 250, 250, -250 , 250)
 
 #########################################################################################
   # Searches predefined data directory to find specified processed MAUS file.

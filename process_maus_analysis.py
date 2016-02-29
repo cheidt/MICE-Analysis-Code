@@ -2,22 +2,23 @@
 import libMausCpp
 import ROOT
 from ROOT import gROOT
+
 import os
 from os import listdir
 import _ctypes
 from array import *
 import argparse
+
 from config_maus_analysis import check_config as _config
 import fill_maus_analysis as _fill
-import analyize_maus_analysis as _analyize
+import analyize_maus_analysis as _analysis
+import station_alignment as _st_align
 
 class Process:
   def __init__ (self):
-    self.a = _analyize.Analyize()
-#    self.a = _analyize.Analyize()
-#    self.a.Initialize()
+    self.st_align = _st_align.ST_Alignment()
+    self.analysis = _analysis.Analysis()
     self.Read_Spills()
-    # self.Output()
 
 #########################################################################################
   # Reads MICE spill data
@@ -100,6 +101,7 @@ class Process:
 
 #########################################################################################
   #
+  """
   def SP_to_Virt(self, virtuals, spaces):
     for detector in spaces:
       for station in spaces[detector]:
@@ -109,19 +111,30 @@ class Process:
               space   = spaces[detector][station][0]
               x_res   = virtual["x_pos"] - space["x_glob_pos"]
               y_res   = virtual["y_pos"] - space["y_glob_pos"]
-              i = "U" if detector == "upstream" else "D"
-              self.SP_to_Virt_Hist[i][station].Fill(x_res, y_res)
-              self.SP_to_Virt_Hist_x[i][station].Fill(x_res)
-              self.SP_to_Virt_Hist_y[i][station].Fill(y_res)
-            
+              i = "TKU" if detector == "upstream" else "TKD"
+              name  = "SP_to_Virt"
+              title = "Residuals MC Truth to Space Point" 
+              self.o.Fill(name, title, x_res, y_res, \
+                          500, -10, 10, 500, -10, 10, \
+                          detector=i, station=station)
+              name = "SP_to_Virt_Hist_x"
+              title = "Residuals MC Truth to Space Point X"
+              self.o.Fill(name, title, x_res, 500, -10, 10, \
+                          detector=i, station=station)
+              name = "SP_to_Virt_Hist_x"
+              title = "Residuals MC Truth to Space Point Y"
+              self.o.Fill(name, title, x_res, 500, -10, 10, \
+                          detector=i, station=station)
+                          """
+
 #########################################################################################
   #
   def SP_Fill_ROOT(self, space_points):
     for detector in space_points:
       for station in space_points[detector]:
         if len(space_points[detector][station]) == 1:
-          x_pos   = space_points[detector][station][0]["x_pos"]
-          y_pos   = space_points[detector][station][0]["y_pos"]
+          x_pos   = space_points[detector][station][0]["x_glob_pos"]
+          y_pos   = space_points[detector][station][0]["y_glob_pos"]
           i = "U" if detector == "upstream" else "D"
           self.SP_Pos[i][station].Fill(x_pos, y_pos)
           if space_points[detector][station][0]["type"] == 3:
@@ -163,7 +176,7 @@ class Process:
   #   where the TOF to TOF line cross the tracker plane and space points are 
   #   calculated.
   def TOF_to_TOF_Tkr_Res(self, tracks, tof1, tof2):
-    for detector in tracks
+    for detector in tracks:
       if tracks[detector]["triples"] < _config["TtT_trip_req"]:
         continue
       TOF_distance = tof1["z_pos"] - tof2["z_pos"]
@@ -201,8 +214,8 @@ class Process:
     if _config["ignore_SP_to_Virt"] == False and \
                "virtual_points" in self.data and \
                "tracker_space_points" in self.data:
-      self.SP_to_Virt(self.data["virtual_points"], \
-                           self.data["tracker_space_points"])
+      self.analysis.SP_to_Virt(self.data["virtual_points"], \
+                               self.data["tracker_space_points"])
 
     if _config["ignore_SP_Fill_ROOT"] == False and \
                "tracker_space_points" in self.data:
@@ -231,21 +244,22 @@ class Process:
 
     if _config["ignore_Station_Alignment"] == False and \
                "tracker_straight_pr" in self.data:
-      self.a.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
+      self.st_align.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
       
     if _config["ignore_TOF_to_TOF_Tkr_Res"]  == False and \
                "tracker_straight_pr" in self.data and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data and \
                TOF_timing["downstream"] == True:
-      self.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"] \
-                              self.data["TOF1_space_points"] \
+      self.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"], \
+                              self.data["TOF1_space_points"],   \
                               self.data["TOF2_space_points"])
 
 #########################################################################################
   #
   def Output(self):
-    self.a.Station_Alignment()
+    self.st_align.Station_Alignment()
+    self.analysis.Write()
     out_root = ROOT.TFile(_config["output_file"],'RECREATE')
     self.Virt_Pos["UnCat"].Write()
     for st in range(1, 6):

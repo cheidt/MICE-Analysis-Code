@@ -1,9 +1,10 @@
+import os
 #########################################################################################
   # Contains all the constants and predefined variables need for all 
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":-5,             # Number of events to process, -1 for all events
+"event_cut":5,             # Number of events to process, -1 for all events
 "event_out":10,             # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 "T_Data":11,                # Number of reconstructed track points with data
@@ -39,9 +40,9 @@ check_config = {
 
 
 # Maus data
-#"data_identifier":"7417",
+#"file_name":"7417",
 #"data_directory":"/vols/fets2/heidt/offline/data/7417/",
-"data_identifier":"maus_output_geo_123_geo.root",
+"file_name":"maus_output_geo_123_geo_inverse.root",
 "data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 "output_file":"testing.root"
 }
@@ -65,5 +66,6 @@ analysis_config = {
 }
 
 out_config = {
-"output_file":"_output_geo_123_geo.root"
+"output_dir":os.environ['ANALYSIS_DIR']+"/output/",
+"output_file":"_output_geo_123_geo_inverse.root"
 }

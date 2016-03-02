@@ -1,0 +1,6 @@
+#/bin/sh
+
+echo "INTIALIZING ANALYSIS ENVIRONMENT"
+DIR="$( pwd )"
+export ANALYSIS_DIR=$DIR
+echo $DIR

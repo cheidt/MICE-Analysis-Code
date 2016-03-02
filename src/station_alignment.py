@@ -5,7 +5,7 @@ from config_maus_analysis import analysis_config as _config
 class ST_Alignment(object):
   def __init__ (self):
     print "INITALIZING ALIGNMENT"
-    self.o = _output.Output("st_alignment")
+    self.o = _output.Output("station_alignment")
     self.spaces = {"upstream":{}, \
                  "downstream":{}}
     self.count  = 0
@@ -20,9 +20,12 @@ class ST_Alignment(object):
         for seeds in track[detector][0]["seeds"]:
           for station in seeds[detector]:
             temp = {}
-            temp = {"x_pos":seeds[detector][station][0]["x_glob_pos"], \
-                    "y_pos":seeds[detector][station][0]["y_glob_pos"], \
-                    "z_pos":seeds[detector][station][0]["z_glob_pos"]}
+            try:
+              temp = {"x_pos":seeds[detector][station][0]["x_glob_pos"], \
+                      "y_pos":seeds[detector][station][0]["y_glob_pos"], \
+                      "z_pos":seeds[detector][station][0]["z_glob_pos"]}
+            except IndexError:
+              print seeds[detector][station]
             self.spaces[detector][self.count][station] = temp
 
   def Station_Alignment(self):
@@ -44,7 +47,7 @@ class ST_Alignment(object):
           i = "TKU" if detector == "upstream" else "TKD"
           self.o.Fill(name, title, x_res, y_res, \
                       500, -250 , 250, 500, -250 , 250, \
-                      detector=i, station=cut_station))
+                      detector=i, station=cut_station)
 
           self.Find_Coefficents(space, x_exp, y_exp)
 
@@ -54,6 +57,7 @@ class ST_Alignment(object):
     temp = {}
     for dim in ["x", "y"]:
       pos = dim+"_pos"
+      a1, a2, a3, a4, a5, a6 = 0
       for station in seeds:
         a1 +=  2*(seeds[station]["z_pos"]**2)
         a2 += -2*(seeds[station][pos]*seeds[station]["z_pos"])

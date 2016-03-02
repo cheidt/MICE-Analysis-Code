@@ -3,11 +3,12 @@ import libMausCpp
 import ROOT
 from ROOT import gROOT
 
-import os
+#import os
 from os import listdir
 import _ctypes
 from array import *
 import argparse
+import subprocess
 
 from config_maus_analysis import check_config as _config
 import fill_maus_analysis as _fill
@@ -24,7 +25,7 @@ class Process:
   # Reads MICE spill data
   def Read_Spills(self):
     file_in = self.Load_file()
-    print "Reading MAUS processed file: ",file_in
+    print "READING MAUS FILE: ",file_in
     root_file = ROOT.TFile(file_in, "READ") 
   # Checks spill/event is good data
     data = ROOT.MAUS.Data()
@@ -193,7 +194,7 @@ class Process:
   # Searches predefined data directory to find specified processed MAUS file.
   def Load_file(self):
     for input_file in listdir(_config["data_directory"]):
-      if _config["data_identifier"] in input_file and ".root" in input_file:
+      if _config["file_name"] in input_file and ".root" in input_file:
         file_in = _config["data_directory"] + input_file
     return file_in
 

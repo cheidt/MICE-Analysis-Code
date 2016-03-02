@@ -1,9 +1,9 @@
 import ROOT
+import os
 from config_maus_analysis import out_config as _config
 
 class Output(object):
   def __init__(self, type):
-    print "INITALIZING " +type.upper()+ " OUTPUTTER"
     self.name = type
     self.hist_container = {}
 
@@ -32,7 +32,8 @@ class Output(object):
                                                         args[3])
 
   def Write(self):
-    file_name = self.name + _config["output_file"]
+    file_name = _config["output_dir"] + self.name + _config["output_file"]
+    print "WRITTING ANALYSIS FILE: ",file_name
     out_root = ROOT.TFile(file_name,'RECREATE')
     for name in self.hist_container:
       self.hist_container[name].Write()

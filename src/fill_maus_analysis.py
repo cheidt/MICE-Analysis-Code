@@ -9,44 +9,46 @@ import config_maus_analysis as _config
   # Control function called directly from process routines.  Reads in single
   #   MICE event in MAUS format and returns nestled dictionary with all event
   #   information.
-def Fill_from_Data(recon, mc, is_recon, is_mc):
+def Fill_from_Data(**kwargs):
   results = {}
-  if is_recon:
-    if len(recon.GetSciFiEvent().digits())               != 0:
+  if "recon" in kwargs:
+    recon = kwargs["recon"]
+    if not len(recon.GetSciFiEvent().digits())               == 0:
       results["tracker_digits"]       = Digits(recon.\
                                         GetSciFiEvent().digits())
-    if len(recon.GetSciFiEvent().clusters())             != 0:
+    if not len(recon.GetSciFiEvent().clusters())             == 0:
       results["tracker_clusters"]     = Clusters(recon.\
                                         GetSciFiEvent().clusters())
-    if len(recon.GetSciFiEvent().spacepoints())          != 0:
+    if not len(recon.GetSciFiEvent().spacepoints())          == 0:
       results["tracker_space_points"] = Space_Points(recon.\
                                         GetSciFiEvent().spacepoints())
-    if len(recon.GetSciFiEvent().straightprtracks())     != 0:
+    if not len(recon.GetSciFiEvent().straightprtracks())     == 0:
       results["tracker_straight_pr"]  = Straight_Pattern_Recon(recon.\
                                         GetSciFiEvent().straightprtracks())
-    if len(recon.GetSciFiEvent().helicalprtracks())      != 0:
+    if not len(recon.GetSciFiEvent().helicalprtracks())      == 0:
       results["tracker_helical_pr"]   = Helical_Pattern_Recon(recon.\
                                         GetSciFiEvent().helicalprtracks())
-    if len(recon.GetSciFiEvent().scifitracks())          != 0:
+    if not len(recon.GetSciFiEvent().scifitracks())          == 0:
       results["tracker_tracks"]       = Tracks(recon.\
                                         GetSciFiEvent().scifitracks())
-    if len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
-                               GetTOF0SpacePointArray()) != 0:
+    if not len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
+                               GetTOF0SpacePointArray()) == 0:
       results["TOF0_space_points"]    = TOF(recon.GetTOFEvent().\
                                                   GetTOFEventSpacePoint().\
                                                   GetTOF0SpacePointArray())
-    if len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
-                               GetTOF1SpacePointArray()) != 0:
+    if not len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
+                               GetTOF1SpacePointArray()) == 0:
       results["TOF1_space_points"]    = TOF(recon.GetTOFEvent().\
                                                   GetTOFEventSpacePoint().\
                                                   GetTOF1SpacePointArray())
-    if len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
-                               GetTOF2SpacePointArray()) != 0:
+    if not len(recon.GetTOFEvent().GetTOFEventSpacePoint().\
+                               GetTOF2SpacePointArray()) == 0:
       results["TOF2_space_points"]    = TOF(recon.GetTOFEvent().\
                                                   GetTOFEventSpacePoint().\
                                                   GetTOF2SpacePointArray())
-  if is_mc == True:
-    if len(mc.GetVirtualHits()) != 0:
+  if "mc" in kwargs:
+    mc = kwargs["mc"]
+    if not len(mc.GetVirtualHits()) == 0:
       results["virtual_points"] = Virtual_Hits(mc.GetVirtualHits())
 
   return results

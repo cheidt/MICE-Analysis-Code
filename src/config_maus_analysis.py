@@ -4,8 +4,8 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":5,             # Number of events to process, -1 for all events
-"event_out":10,             # How often to output event number
+"event_cut":-5,             # Number of events to process, -1 for all events
+"event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 "T_Data":11,                # Number of reconstructed track points with data
 "TtT_trip_req":5,           # Required triplets PR for TOF_to_TOF_Tkr_Res
@@ -22,13 +22,13 @@ check_config = {
 
 
 # Analysis functions, turns functions On(False)/Off(True)
-"ignore_SP_to_Virt":             False,
+"ignore_SP_to_Virt":             True,
 "ignore_SP_Fill_ROOT":           False,
-"ignore_Virt_Fill_ROOT":         False,
-"ignore_TOF_Timing_Info":        True,
+"ignore_Virt_Fill_ROOT":         True,
+"ignore_TOF_Timing_Info":        False,
 "ignore_Generate_Virtual_Map":   True,
 "ignore_Station_Alignment":      True,
-"ignore_TOF_to_TOF_Tkr_Res":     True,
+"ignore_TOF_to_TOF_Tkr_Res":     False,
 
 
 # Counters
@@ -40,11 +40,10 @@ check_config = {
 
 
 # Maus data
-#"file_name":"7417",
-#"data_directory":"/vols/fets2/heidt/offline/data/7417/",
-"file_name":"maus_output_geo_123_geo_inverse.root",
-"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
-"output_file":"testing.root"
+"file_name":"maus_output.root",
+"data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
+#"file_name":"maus_output_geo_123_geo_inverse.root",
+#"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 }
 
 fill_config = {
@@ -67,5 +66,5 @@ analysis_config = {
 
 out_config = {
 "output_dir":os.environ['ANALYSIS_DIR']+"/output/",
-"output_file":"_output_geo_123_geo_inverse.root"
+"output_file":"_output_geo_123_geo_7417.root"
 }

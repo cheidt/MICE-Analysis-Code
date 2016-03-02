@@ -45,8 +45,9 @@ class Process:
       self.spill = data.GetSpill()
       if not self.spill.GetDaqEventType() == "physics_event":
         continue
-      if self.spill.GetReconEvents().size() == 0:
-        print "No Recon Events"
+      if self.spill.GetReconEvents().size() == 0 and \
+         self.spill.GetMCEvents().size() == 0:
+        print "No Data"
         continue
 
   # Fills the ROOT containers with data from the MAUS files
@@ -59,19 +60,24 @@ class Process:
   #   MICE data to fill those contianers. Finally calls a function to start 
   #   analysis of the event using collected data and flags.  
   def Process_Event(self):
-    for rc in range(self.spill.GetReconEvents().size()):
-      _config["counter"]["total_events"]+=1
-      self.is_recon = False
-      self.is_mc    = False
-      if not self.spill.GetReconEvents()[rc] == 0:
-        self.is_recon = True
-        recon_event   = self.spill.GetReconEvents()[rc]
-      if not self.spill.GetMCEvents().size() == 0:
-        self.is_mc    = True
-        mc_event      = self.spill.GetMCEvents()[rc]
-      self.data = _fill.Fill_from_Data(recon_event, mc_event, \
-                                       self.is_recon, self.is_mc)
-      self.Call_Analysis()
+    if not self.spill.GetMCEvents().size() == 0:
+      for rc in range(self.spill.GetMCEvents().size()):
+        _config["counter"]["total_events"]+=1
+        if self.spill.GetReconEvents()[rc]:
+          self.data = _fill.Fill_from_Data( \
+                            recon = self.spill.GetReconEvents()[rc], \
+                            mc    = self.spill.GetMCEvents()[rc])
+          self.Call_Analysis()
+        else:
+          self.data = _fill.Fill_from_Data( \
+                            mc    = self.spill.GetMCEvents()[rc])
+          self.Call_Analysis()
+    else:
+      for rc in range(self.spill.GetReconEvents().size()):
+        _config["counter"]["total_events"]+=1
+        self.data = _fill.Fill_from_Data( \
+                          recon = self.spill.GetReconEvents()[rc])
+        self.Call_Analysis()
 
 #########################################################################################
   # Start Analysis Functions
@@ -97,34 +103,6 @@ class Process:
                                                         space["plane"]]
     file = open('virtual_map', 'w')
     file.write(config_dict)
-
-#########################################################################################
-  # Reads in TOF1 and TOF2 positions and draws a line between the two.  Space
-  #   points are transformed into global coordinates and the residuals between
-  #   where the TOF to TOF line cross the tracker plane and space points are 
-  #   calculated.
-  def TOF_to_TOF_Tkr_Res(self, tracks, tof1, tof2):
-    for detector in tracks:
-      if tracks[detector]["triples"] < _config["TtT_trip_req"]:
-        continue
-      TOF_distance = tof1["z_pos"] - tof2["z_pos"]
-      x_change = tof1["x_pos"] - tof2["x_pos"]
-      y_change = tof1["y_pos"] - tof2["y_pos"]
-      x_slope  = x_change/TOF_distance
-      y_slope  = y_change/TOF_distance
-
-      for spaces in track[detector]["seeds"]:
-        for station in spaces[detector]:
-          space = spaces[detector][station]
-          z_pos = space["z_glob_pos"]
-          distance = z_pos - tof1["z_pos"]
-          expected_x = tof1["x_pos"] + distance * x_slope
-          residual_x = space["x_glob_pos"] - expected_x
-          expected_y = tof1["y_pos"] + distance * y_slope
-          residual_y = space["y_glob_pos"] - expected_y
-          self.tof_to_tof_residual["up"][st].Fill(residual_x,residual_y)
-          self.tof_to_tof_residual_x["up"][st].Fill(residual_x)
-          self.tof_to_tof_residual_y["up"][st].Fill(residual_y)
 
 #########################################################################################
   # Backend functions
@@ -166,8 +144,8 @@ class Process:
                "TOF2_space_points" in self.data:
       time = self.analysis.TOF_Timing_Info(self.data["TOF1_space_points"], \
                                            self.data["TOF2_space_points"])
-      if time > _config["Downstream_Tmin"] and \
-         time < _config["Downstream_Tmax"]:
+      if time > _config["downstream_Tmin"] and \
+         time < _config["downstream_Tmax"]:
         TOF_timing["downstream"] = True
 
     if _config["ignore_Station_Alignment"] == False and \

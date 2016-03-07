@@ -128,31 +128,50 @@ class Analysis(object):
       x_slope  = x_change/TOF_distance
       y_slope  = y_change/TOF_distance
 
-      for spaces in tracks[detector][0]["seeds"]:
-        for station in spaces[detector]:
+      spaces = tracks[detector][0]["seeds"][0]
+      for station in spaces[detector]:
+        try:
           space = spaces[detector][station][0]
-          z_pos = space["z_glob_pos"]
-          distance = z_pos - tof1[0]["z_pos"]
-          expected_x = tof1[0]["x_pos"] + distance * x_slope
-          residual_x = space["x_glob_pos"] - expected_x
-          expected_y = tof1[0]["y_pos"] + distance * y_slope
-          residual_y = space["y_glob_pos"] - expected_y
-          
-          name  = "TOF_to_TOF"
-          title = "TOF Line and Track SP Residuals"
-          self.o_TtT.Fill(name, title, residual_x, residual_y, \
-                          500, -400 , 400, 500, -400 , 400, \
-                          detector=detector, station=station)
-          
-          name  = "TOF_to_TOF_X"
-          title = "TOF Line and Track SP Residuals X"
-          self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
-                          detector=detector, station=station)
-          
-          name  = "TOF_to_TOF_Y"
-          title = "TOF Line and Track SP Residuals Y"
-          self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
-                          detector=detector, station=station)
+        except IndexError:
+          print "Mismatched number of seeds"
+          continue
+          #print tracks[detector]
+          print station
+          print spaces[detector][station]
+          print detector
+          for st in spaces[detector]:
+            print len(spaces[detector][st])
+            if len(spaces[detector][st]) == 1:
+              print spaces[detector][st][0]["clusters"][0][detector][st][0]["event"]
+              print spaces[detector][st][0]["clusters"][0][detector][st][0]["spill"]
+          print tracks[detector][0]["num_pnt"]
+          print tracks[detector][0]["triplets"]
+        if len(spaces[detector][station]) > 1:
+          print station
+          print spaces[detector][station]
+        z_pos = space["z_glob_pos"]
+        distance = z_pos - tof1[0]["z_pos"]
+        expected_x = tof1[0]["x_pos"] + distance * x_slope
+        residual_x = space["x_glob_pos"] - expected_x
+        expected_y = tof1[0]["y_pos"] + distance * y_slope
+        residual_y = space["y_glob_pos"] - expected_y
+        
+        name  = "TOF_to_TOF"
+        title = "TOF Line and Track SP Residuals"
+        self.o_TtT.Fill(name, title, residual_x, residual_y, \
+                        500, -400 , 400, 500, -400 , 400, \
+                        detector=detector, station=station)
+        
+        name  = "TOF_to_TOF_X"
+        title = "TOF Line and Track SP Residuals X"
+        self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+                        detector=detector, station=station)
+        
+        name  = "TOF_to_TOF_Y"
+        title = "TOF Line and Track SP Residuals Y"
+        self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+                        detector=detector, station=station)
+
 
   def Write(self):
     self.o_TtT.Write()

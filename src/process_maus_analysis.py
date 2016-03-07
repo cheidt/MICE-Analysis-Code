@@ -33,14 +33,13 @@ class Process:
     if not tree:
       return
     tree.SetBranchAddress("data", data)
-    peat_count = 0
     event_cut = _config["event_cut"]
     if event_cut > tree.GetEntries() or event_cut <= 0:
       event_cut = tree.GetEntries()
     for i in range(event_cut):
-      peat_count += 1
-      if (peat_count % _config["event_out"] == 0):
-        print "Filling event: ",peat_count, "/", event_cut
+        continue
+      if (i % _config["event_out"] == 0):
+        print "Filling event: ",i, "/", event_cut
       tree.GetEntry(i)
       self.spill = data.GetSpill()
       if not self.spill.GetDaqEventType() == "physics_event":
@@ -168,7 +167,7 @@ class Process:
   def Output(self):
     self.st_align.Station_Alignment()
     self.analysis.Write()
-    raw_input("Press Enter to Exit")
+    #raw_input("Press Enter to Exit")
 
 #########################################################################################
   # Searches predefined data directory to find specified processed MAUS file.

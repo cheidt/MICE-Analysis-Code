@@ -191,7 +191,7 @@ def fill_straight_pattern_recon(prtrk):
   temp["covariance"] = prtrk.get_covariance()
   temp["seeds"]      = []
   temp["pr_covariance"] = prtrk.get_covariance()
-  seed = Space_Points(prtrk.get_spacepoints())
+  seed = Space_Points(prtrk.get_spacepoints_pointers())
   temp["seeds"].append(seed)
   return temp
 

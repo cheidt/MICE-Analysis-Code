@@ -8,7 +8,6 @@ check_config = {
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 "T_Data":11,                # Number of reconstructed track points with data
-"TtT_trip_req":5,           # Required triplets PR for TOF_to_TOF_Tkr_Res
 "P_Cut":0.05,               # Lower limit for reconstructed track P-values
 "upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1 
 "upstream_Tmax":29.83,      # Maximum timing for TOF0 to TOF1
@@ -61,6 +60,7 @@ fill_config = {
 }
 
 analysis_config = {
+"TtT_trip_req":5,           # Required triplets PR for TOF_to_TOF_Tkr_Res
 "Number_of_Points": 5,
 }
 

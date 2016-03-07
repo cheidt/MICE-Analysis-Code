@@ -97,7 +97,7 @@ class Analysis(object):
   def TOF_Timing_Info(self, up_tof, down_tof):
     if len(up_tof) == 1 and \
        len(down_tof) == 1:
-      timing = up_tof[0]["time"] - down_tof[0]["time"]
+      timing = down_tof[0]["time"] - up_tof[0]["time"]
       return timing
     else:
       timing = -10000.
@@ -110,39 +110,49 @@ class Analysis(object):
   #   calculated.
   def TOF_to_TOF_Tkr_Res(self, tracks, tof1, tof2):
     for detector in tracks:
-      if tracks[detector]["triples"] < _config["TtT_trip_req"]:
+      if not len(tracks[detector]) == 1:
+        if len(tracks[detector]) == 0:
+          continue
+        else:
+          print "Event has too many tracks in ",detector," detector"
+          continue
+      if tracks[detector][0]["triplets"] < _config["TtT_trip_req"]:
         continue
-      TOF_distance = tof1["z_pos"] - tof2["z_pos"]
-      x_change = tof1["x_pos"] - tof2["x_pos"]
-      y_change = tof1["y_pos"] - tof2["y_pos"]
+      if not len(tof1) == 1 or not len(tof2) == 1:
+        print "Event has too many TOF spacepoints: ","\nTOF1: ",len(tof1), \
+              "\nTOF2: ", len(tof2)
+        continue
+      TOF_distance = tof1[0]["z_pos"] - tof2[0]["z_pos"]
+      x_change = tof1[0]["x_pos"] - tof2[0]["x_pos"]
+      y_change = tof1[0]["y_pos"] - tof2[0]["y_pos"]
       x_slope  = x_change/TOF_distance
       y_slope  = y_change/TOF_distance
 
-      for spaces in track[detector]["seeds"]:
+      for spaces in tracks[detector][0]["seeds"]:
         for station in spaces[detector]:
-          space = spaces[detector][station]
+          space = spaces[detector][station][0]
           z_pos = space["z_glob_pos"]
-          distance = z_pos - tof1["z_pos"]
-          expected_x = tof1["x_pos"] + distance * x_slope
+          distance = z_pos - tof1[0]["z_pos"]
+          expected_x = tof1[0]["x_pos"] + distance * x_slope
           residual_x = space["x_glob_pos"] - expected_x
-          expected_y = tof1["y_pos"] + distance * y_slope
+          expected_y = tof1[0]["y_pos"] + distance * y_slope
           residual_y = space["y_glob_pos"] - expected_y
           
           name  = "TOF_to_TOF"
           title = "TOF Line and Track SP Residuals"
-          self.o_TtT.Fill(name, title, x_pos, y_pos, \
+          self.o_TtT.Fill(name, title, residual_x, residual_y, \
                           500, -400 , 400, 500, -400 , 400, \
-                          detector=i, station=station)
+                          detector=detector, station=station)
           
           name  = "TOF_to_TOF_X"
           title = "TOF Line and Track SP Residuals X"
-          self.o_TtT.Fill(name, title, x_pos, -400 , 400, \
-                          detector=i, station=station)
+          self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+                          detector=detector, station=station)
           
           name  = "TOF_to_TOF_Y"
           title = "TOF Line and Track SP Residuals Y"
-          self.o_TtT.Fill(name, title, y_pos, 500, -400 , 400, \
-                          detector=i, station=station)
+          self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+                          detector=detector, station=station)
 
   def Write(self):
     self.o_TtT.Write()

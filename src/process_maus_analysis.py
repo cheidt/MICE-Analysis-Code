@@ -131,6 +131,7 @@ class Process:
                "virtual_points" in self.data:
       self.analysis.Virt_Fill_ROOT(self.data["virtual_points"])
 
+    time = -10000
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF0_space_points" in self.data and \
                "TOF1_space_points" in self.data:
@@ -139,6 +140,7 @@ class Process:
       if time > _config["upstream_Tmin"] and \
          time < _config["upstream_Tmax"]:
         TOF_timing["upstream"] = True
+    time = -10000
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data:
@@ -151,15 +153,15 @@ class Process:
     if _config["ignore_Station_Alignment"] == False and \
                "tracker_straight_pr" in self.data:
       self.st_align.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
-      
+
     if _config["ignore_TOF_to_TOF_Tkr_Res"]  == False and \
                "tracker_straight_pr" in self.data and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data and \
                TOF_timing["downstream"] == True:
-      self.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"], \
-                              self.data["TOF1_space_points"],   \
-                              self.data["TOF2_space_points"])
+      self.analysis.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"], \
+                                       self.data["TOF1_space_points"],   \
+                                       self.data["TOF2_space_points"])
 
 #########################################################################################
   #

@@ -37,7 +37,6 @@ class Process:
     if event_cut > tree.GetEntries() or event_cut <= 0:
       event_cut = tree.GetEntries()
     for i in range(event_cut):
-        continue
       if (i % _config["event_out"] == 0):
         print "Filling event: ",i, "/", event_cut
       tree.GetEntry(i)
@@ -153,14 +152,14 @@ class Process:
                "tracker_straight_pr" in self.data:
       self.st_align.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
 
-    if _config["ignore_TOF_to_TOF_Tkr_Res"]  == False and \
-               "tracker_straight_pr" in self.data and \
+    if _config["ignore_TOF_Tkr_Res"]  == False and \
+               "tracker_tracks" in self.data and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data and \
                TOF_timing["downstream"] == True:
-      self.analysis.TOF_to_TOF_Tkr_Res(self.data["tracker_straight_pr"], \
-                                       self.data["TOF1_space_points"],   \
-                                       self.data["TOF2_space_points"])
+      self.analysis.TOF_Tk_Res(self.data["tracker_tracks"], \
+                                self.data["TOF1_space_points"],   \
+                                self.data["TOF2_space_points"])
 
 #########################################################################################
   #

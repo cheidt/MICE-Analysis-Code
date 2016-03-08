@@ -330,7 +330,7 @@ def fill_tracks(track):
     temp2["event"]             = trpint.event()
     temp2["has_data"]          = trpint.has_data()
     if temp2["has_data"] == True:
-      num_data =+ 1
+      num_data += 1
     temp["track_points"].append(temp2)
   temp["number_data_points"] = num_data
   return temp

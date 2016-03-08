@@ -104,75 +104,113 @@ class Analysis(object):
       return timing
 
 #########################################################################################
-  # Reads in TOF1 and TOF2 positions and draws a line between the two.  Space
-  #   points are transformed into global coordinates and the residuals between
-  #   where the TOF to TOF line cross the tracker plane and space points are 
-  #   calculated.
-  def TOF_to_TOF_Tkr_Res(self, tracks, tof1, tof2):
+  # This method does some additional data cutting and then calls different
+  #   methods to determine the residuals of TOF to Tracker reconstruction. 
+  def TOF_Tk_Res(self, tracks, tof1, tof2):
     for detector in tracks:
       if not len(tracks[detector]) == 1:
         if len(tracks[detector]) == 0:
           continue
         else:
-          print "Event has too many tracks in ",detector," detector"
-          continue
-      if tracks[detector][0]["triplets"] < _config["TtT_trip_req"]:
+          print "Number of tracks in Tk ",detector," ",len(tracks[detector])
+          pop_list = []
+          for track in range(len(tracks[detector])):
+            print "Track ",track," has ",tracks[detector][track]\
+                  ["number_data_points"]," data points"
+            if int(tracks[detector][track]["number_data_points"]) <= \
+               int(_config["min_data"]):
+              pop_list.append(track)
+          pop_list.sort(reverse=True)
+          if not len(pop_list) == 0:
+            for i in range(len(pop_list)):
+              tracks[detector].pop(pop_list[i])
+          if not len(tracks[detector]) == 1:
+            if len(tracks[detector]) == 0:
+              print "No acceptable tracks"
+              continue
+            if len(tracks[detector]) > 1:
+              print "Still too many tracks"
+              continue
+      if tracks[detector][0]["number_data_points"] < _config["tk_data_req"]:
+        continue
+      if tracks[detector][0]["p_value"] < 0.01:
+        continue
+      if not len(tracks[detector][0]["prtrks"]) == 1:
+        print "Wrong number of PR tracks in track"
         continue
       if not len(tof1) == 1 or not len(tof2) == 1:
         print "Event has too many TOF spacepoints: ","\nTOF1: ",len(tof1), \
               "\nTOF2: ", len(tof2)
         continue
+      tof = tof1 if detector == "upstream" else tof2
+      self.TOF_to_TOF_Tk_Res(tracks[detector][0], tof1, tof2, detector)
+      self.Tracker_to_TOF_Res(tracks[detector][0]["prtrks"][0], tof, detector)
+
+#########################################################################################
+  # Draws a line between TOF1 and TOF2 then calculates where in x/y that line
+  #   crosses each station.  Residual is between that point and reconstructed
+  #   station space point position.
+  def TOF_to_TOF_Tk_Res(self, track, tof1, tof2, detector):
       TOF_distance = tof1[0]["z_pos"] - tof2[0]["z_pos"]
       x_change = tof1[0]["x_pos"] - tof2[0]["x_pos"]
       y_change = tof1[0]["y_pos"] - tof2[0]["y_pos"]
       x_slope  = x_change/TOF_distance
       y_slope  = y_change/TOF_distance
 
-      spaces = tracks[detector][0]["seeds"][0]
-      for station in spaces[detector]:
-        try:
-          space = spaces[detector][station][0]
-        except IndexError:
-          print "Mismatched number of seeds"
-          continue
-          #print tracks[detector]
-          print station
-          print spaces[detector][station]
-          print detector
-          for st in spaces[detector]:
-            print len(spaces[detector][st])
-            if len(spaces[detector][st]) == 1:
-              print spaces[detector][st][0]["clusters"][0][detector][st][0]["event"]
-              print spaces[detector][st][0]["clusters"][0][detector][st][0]["spill"]
-          print tracks[detector][0]["num_pnt"]
-          print tracks[detector][0]["triplets"]
-        if len(spaces[detector][station]) > 1:
-          print station
-          print spaces[detector][station]
-        z_pos = space["z_glob_pos"]
-        distance = z_pos - tof1[0]["z_pos"]
-        expected_x = tof1[0]["x_pos"] + distance * x_slope
-        residual_x = space["x_glob_pos"] - expected_x
-        expected_y = tof1[0]["y_pos"] + distance * y_slope
-        residual_y = space["y_glob_pos"] - expected_y
-        
-        name  = "TOF_to_TOF"
-        title = "TOF Line and Track SP Residuals"
-        self.o_TtT.Fill(name, title, residual_x, residual_y, \
-                        500, -400 , 400, 500, -400 , 400, \
-                        detector=detector, station=station)
-        
-        name  = "TOF_to_TOF_X"
-        title = "TOF Line and Track SP Residuals X"
-        self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
-                        detector=detector, station=station)
-        
-        name  = "TOF_to_TOF_Y"
-        title = "TOF Line and Track SP Residuals Y"
-        self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
-                        detector=detector, station=station)
+      for point in track["track_points"]:
+        if point["plane"] == 0:
+          z_pos = point["z_pos"]
+          distance = z_pos - tof1[0]["z_pos"]
+          expected_x = tof1[0]["x_pos"] + distance * x_slope
+          residual_x = point["x_pos"] - expected_x
+          expected_y = tof1[0]["y_pos"] + distance * y_slope
+          residual_y = point["y_pos"] - expected_y
 
+          station = point["station"]
+          name  = "TOF_to_TOF"
+          title = "TOF Line to Trk SP Residuals"
+          self.o_TtT.Fill(name, title, residual_x, residual_y, \
+                          500, -400 , 400, 500, -400 , 400, \
+                          detector=detector, station=station)
 
+          name  = "TOF_to_TOF_X"
+          title = "TOF Line to Trk SP Residuals X"
+          self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+                          detector=detector, station=station)
+
+          name  = "TOF_to_TOF_Y"
+          title = "TOF Line to Trk SP Residuals Y"
+          self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+                          detector=detector, station=station)
+
+#########################################################################################
+  # Uses straight PR line and traces where line crosses either TOF1 or TOF2
+  #   x/y values at the point are found and residuals with TOF space point 
+  #   calculated.
+  def Tracker_to_TOF_Res(self, track, tof, detector):
+    exp_x      = track["m_x"]*tof[0]["z_pos"]+track["x_0"]
+    exp_y      = track["m_y"]*tof[0]["z_pos"]+track["y_0"]
+    residual_x = exp_x - tof[0]["x_pos"]
+    residual_y = exp_y - tof[0]["y_pos"]
+
+    name  = "Tk_to_TOF"
+    title = "Tk Line to TOF SP Residuals"
+    self.o_TtT.Fill(name, title, residual_x, residual_y, \
+                    500, -400 , 400, 500, -400 , 400, \
+                    detector=detector)
+
+    name  = "Tk_to_TOF_X"
+    title = "Tk Line to TOF SP Residuals X"
+    self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+                    detector=detector)
+
+    name  = "Tk_to_TOF_Y"
+    title = "Tk Line to TOF SP Residuals Y"
+    self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+                    detector=detector)
+
+#########################################################################################
+  # Writes analysis out to file by calling output class
   def Write(self):
     self.o_TtT.Write()
     self.o_sp.Write()

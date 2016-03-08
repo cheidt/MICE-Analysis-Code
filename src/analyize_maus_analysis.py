@@ -24,20 +24,19 @@ class Analysis(object):
               space   = spaces[detector][station][0]
               x_res   = virtual["x_pos"] - space["x_glob_pos"]
               y_res   = virtual["y_pos"] - space["y_glob_pos"]
-              i = "TKU" if detector == "upstream" else "TKD"
               name  = "SP_to_Virt"
               title = "Residuals MC Truth to Space Point" 
               self.o.Fill(name, title, x_res, y_res, \
                           500, -10, 10, 500, -10, 10, \
-                          detector=i, station=station)
+                          detector=detector, station=station)
               name = "SP_to_Virt_Hist_x"
               title = "Residuals MC Truth to Space Point X"
               self.o.Fill(name, title, x_res, 500, -10, 10, \
-                          detector=i, station=station)
+                          detector=detector, station=station)
               name = "SP_to_Virt_Hist_x"
               title = "Residuals MC Truth to Space Point Y"
               self.o.Fill(name, title, x_res, 500, -10, 10, \
-                          detector=i, station=station)
+                          detector=detector, station=station)
 
 #########################################################################################
   # Pulls out a plots tracker space point positions
@@ -47,24 +46,23 @@ class Analysis(object):
         if len(space_points[detector][station]) == 1:
           x_pos   = space_points[detector][station][0]["x_glob_pos"]
           y_pos   = space_points[detector][station][0]["y_glob_pos"]
-          i = "TKU" if detector == "upstream" else "TKD"
           name  = "SP_Pos"
           title = "Space Point Positions"
           self.o_sp.Fill(name, title, x_pos, y_pos, \
                          250, -250 , 250, 250, -250 , 250, \
-                         detector=i, station=station)
+                         detector=detector, station=station)
           if space_points[detector][station][0]["type"] == 3:
             name  = "SP_Trip_Pos"
             title = "Space Point Triplet Postions"
             self.o_sp.Fill(name, title, x_pos, y_pos, \
                            250, -250 , 250, 250, -250 , 250, \
-                           detector=i, station=station)
+                           detector=detector, station=station)
           else:
             name  = "SP_Doub_Pos"
             title = "Space Point Doublet Postions"
             self.o_sp.Fill(name, title, x_pos, y_pos, \
                            250, -250 , 250, 250, -250 , 250, \
-                           detector=i, station=station)
+                           detector=detector, station=station)
 
 #########################################################################################
   # Writes out MC truth positions, catorigizes virtual planes near tracker
@@ -108,39 +106,51 @@ class Analysis(object):
   #   methods to determine the residuals of TOF to Tracker reconstruction. 
   def TOF_Tk_Res(self, tracks, tof1, tof2):
     for detector in tracks:
+
       if not len(tracks[detector]) == 1:
         if len(tracks[detector]) == 0:
+          _output.Message("No tracks in the ", detector, " tracker")
           continue
         else:
-          print "Number of tracks in Tk ",detector," ",len(tracks[detector])
+          _output.Message("Number of tracks in the ", detector, " ", \
+                           len(tracks[detector]))
           pop_list = []
           for track in range(len(tracks[detector])):
-            print "Track ",track," has ",tracks[detector][track]\
-                  ["number_data_points"]," data points"
+            _output.Message("Track ", track, " has ", tracks[detector]\
+                            [track]["number_data_points"], " data points")
             if int(tracks[detector][track]["number_data_points"]) <= \
                int(_config["min_data"]):
               pop_list.append(track)
-          pop_list.sort(reverse=True)
           if not len(pop_list) == 0:
+            pop_list.sort(reverse=True)
             for i in range(len(pop_list)):
               tracks[detector].pop(pop_list[i])
-          if not len(tracks[detector]) == 1:
-            if len(tracks[detector]) == 0:
-              print "No acceptable tracks"
-              continue
-            if len(tracks[detector]) > 1:
-              print "Still too many tracks"
-              continue
+
+      if not len(tracks[detector]) == 1:
+        if len(tracks[detector]) == 0:
+          _output.Message("No acceptable tracks")
+          continue
+        if len(tracks[detector]) > 1:
+          _output.Message("Too many tracks")
+          continue
+
       if tracks[detector][0]["number_data_points"] < _config["tk_data_req"]:
+        _output.Message("Not enough data points in track ", \
+                         tracks[detector][0]["number_data_points"]))
         continue
-      if tracks[detector][0]["p_value"] < 0.01:
+
+      if tracks[detector][0]["p_value"] < _config["p_cut"]:
+        _output.Message("P value of track too low ", \
+                         tracks[detector][0]["p_value"])
         continue
+
       if not len(tracks[detector][0]["prtrks"]) == 1:
-        print "Wrong number of PR tracks in track"
+        _output.Message("Wrong number of PR tracks in track")
         continue
+
       if not len(tof1) == 1 or not len(tof2) == 1:
-        print "Event has too many TOF spacepoints: ","\nTOF1: ",len(tof1), \
-              "\nTOF2: ", len(tof2)
+        _output.Message("Event has too many TOF spacepoints: \nTOF1: ", \
+                         len(tof1), "\nTOF2: ", len(tof2))
         continue
       tof = tof1 if detector == "upstream" else tof2
       self.TOF_to_TOF_Tk_Res(tracks[detector][0], tof1, tof2, detector)
@@ -170,17 +180,17 @@ class Analysis(object):
           name  = "TOF_to_TOF"
           title = "TOF Line to Trk SP Residuals"
           self.o_TtT.Fill(name, title, residual_x, residual_y, \
-                          500, -400 , 400, 500, -400 , 400, \
+                          200, -400 , 400, 200, -400 , 400, \
                           detector=detector, station=station)
 
           name  = "TOF_to_TOF_X"
           title = "TOF Line to Trk SP Residuals X"
-          self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+          self.o_TtT.Fill(name, title, residual_x, 200, -400 , 400, \
                           detector=detector, station=station)
 
           name  = "TOF_to_TOF_Y"
           title = "TOF Line to Trk SP Residuals Y"
-          self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+          self.o_TtT.Fill(name, title, residual_y, 200, -400 , 400, \
                           detector=detector, station=station)
 
 #########################################################################################
@@ -188,25 +198,25 @@ class Analysis(object):
   #   x/y values at the point are found and residuals with TOF space point 
   #   calculated.
   def Tracker_to_TOF_Res(self, track, tof, detector):
-    exp_x      = track["m_x"]*tof[0]["z_pos"]+track["x_0"]
-    exp_y      = track["m_y"]*tof[0]["z_pos"]+track["y_0"]
+    exp_x      = track["m_x_global"]*tof[0]["z_pos"]+track["x_0_global"]
+    exp_y      = track["m_y_global"]*tof[0]["z_pos"]+track["y_0_global"]
     residual_x = exp_x - tof[0]["x_pos"]
     residual_y = exp_y - tof[0]["y_pos"]
 
     name  = "Tk_to_TOF"
     title = "Tk Line to TOF SP Residuals"
     self.o_TtT.Fill(name, title, residual_x, residual_y, \
-                    500, -400 , 400, 500, -400 , 400, \
+                    200, -400 , 400, 200, -400 , 400, \
                     detector=detector)
 
     name  = "Tk_to_TOF_X"
     title = "Tk Line to TOF SP Residuals X"
-    self.o_TtT.Fill(name, title, residual_x, 500, -400 , 400, \
+    self.o_TtT.Fill(name, title, residual_x, 200, -400 , 400, \
                     detector=detector)
 
     name  = "Tk_to_TOF_Y"
     title = "Tk Line to TOF SP Residuals Y"
-    self.o_TtT.Fill(name, title, residual_y, 500, -400 , 400, \
+    self.o_TtT.Fill(name, title, residual_y, 200, -400 , 400, \
                     detector=detector)
 
 #########################################################################################

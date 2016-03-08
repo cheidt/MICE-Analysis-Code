@@ -38,3 +38,17 @@ class Output(object):
     for name in self.hist_container:
       self.hist_container[name].Write()
     out_root.Close()
+
+def Message(*args, **kwargs):
+  string = None
+  for i in args:
+    string += str(args[i])
+  if "exc" in kwargs:
+    if kwargs["exc"] == True:
+      print string
+  elif _config["verbose"] == True:
+    print string
+  log = open(_config["log_file"],"a")
+  log.write(string)
+  log.close()
+  

@@ -4,20 +4,16 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":-5,             # Number of events to process, -1 for all events
+"event_cut":-5,             # Maximum event to process to, negative for max
+"min_event":0,              # Minimum event to process, testing purposes
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
-"P_Cut":0.05,               # Lower limit for reconstructed track P-values
+
 "upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1 
 "upstream_Tmax":29.83,      # Maximum timing for TOF0 to TOF1
 "downstream_Tmin":28.04,    # Minimum timing for TOF1 to TOF2 
 "downstream_Tmax":34.84,    # Maximum timing for TOF1 to TOF2
-
-
-# Lists
-"Tker_List":["upstream", "downstream"],          # Labels for tracking detectors
-"TOF_List":["tof0", "tof1", "tof2"],             # Labels for TOF detectors
 
 
 # Analysis functions, turns functions On(False)/Off(True)
@@ -43,6 +39,7 @@ check_config = {
 "data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
 #"file_name":"maus_output_geo_123_geo_inverse.root",
 #"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
+"log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
 }
 
 fill_config = {
@@ -61,11 +58,13 @@ fill_config = {
 
 analysis_config = {
 "tk_data_req":14,          # Number of reconstructed track points with data
-"min_data":9,
-"Number_of_Points": 5,
+"min_data":9,              # Bad data criteria for events with two tracks.   
+"p_cut":0.05,              # Lower limit for reconstructed track P-values
 }
 
 out_config = {
 "output_dir":os.environ['ANALYSIS_DIR']+"/output/",
-"output_file":"_output_geo_123_geo_7417.root"
+"output_file":"_output_geo_123_geo_7417.root",
+"log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
+"verbose":False,
 }

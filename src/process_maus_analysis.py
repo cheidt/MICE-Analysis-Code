@@ -14,18 +14,21 @@ from config_maus_analysis import check_config as _config
 import fill_maus_analysis as _fill
 import analyize_maus_analysis as _analysis
 import station_alignment as _st_align
+import output_maus_analysis as _output
 
 class Process:
   def __init__ (self):
     self.st_align = _st_align.ST_Alignment()
     self.analysis = _analysis.Analysis()
     self.Read_Spills()
+    clear_log = open(_config["log_file"],"w")
+    clear_log.close()
 
 #########################################################################################
   # Reads MICE spill data
   def Read_Spills(self):
     file_in = self.Load_file()
-    print "READING MAUS FILE: ",file_in
+    _output.Message("READING MAUS FILE: ", file_in, exc=True)
     root_file = ROOT.TFile(file_in, "READ") 
   # Checks spill/event is good data
     data = ROOT.MAUS.Data()
@@ -34,18 +37,20 @@ class Process:
       return
     tree.SetBranchAddress("data", data)
     event_cut = _config["event_cut"]
+    min_event = _config["min_event"]
     if event_cut > tree.GetEntries() or event_cut <= 0:
       event_cut = tree.GetEntries()
-    for i in range(event_cut):
+    for i in range(min_event, event_cut):
       if (i % _config["event_out"] == 0):
-        print "Filling event: ",i, "/", event_cut
+        _output.Message("Filling event: ", i, "/", event_cut, exc=True)
       tree.GetEntry(i)
       self.spill = data.GetSpill()
       if not self.spill.GetDaqEventType() == "physics_event":
+        _output.Message("Not a physics event")
         continue
       if self.spill.GetReconEvents().size() == 0 and \
          self.spill.GetMCEvents().size() == 0:
-        print "No Data"
+        _output.Message("No data in event")
         continue
 
   # Fills the ROOT containers with data from the MAUS files
@@ -166,7 +171,7 @@ class Process:
   def Output(self):
     self.st_align.Station_Alignment()
     self.analysis.Write()
-    #raw_input("Press Enter to Exit")
+    raw_input("Press Enter to Exit")
 
 #########################################################################################
   # Searches predefined data directory to find specified processed MAUS file.

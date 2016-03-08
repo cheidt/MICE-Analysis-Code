@@ -136,7 +136,7 @@ class Analysis(object):
 
       if tracks[detector][0]["number_data_points"] < _config["tk_data_req"]:
         _output.Message("Not enough data points in track ", \
-                         tracks[detector][0]["number_data_points"]))
+                         tracks[detector][0]["number_data_points"])
         continue
 
       if tracks[detector][0]["p_value"] < _config["p_cut"]:

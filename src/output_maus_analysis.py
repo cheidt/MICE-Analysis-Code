@@ -40,9 +40,9 @@ class Output(object):
     out_root.Close()
 
 def Message(*args, **kwargs):
-  string = None
+  string = ""
   for i in args:
-    string += str(args[i])
+    string = string + str(i)
   if "exc" in kwargs:
     if kwargs["exc"] == True:
       print string

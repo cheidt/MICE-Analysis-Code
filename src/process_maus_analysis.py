@@ -46,7 +46,6 @@ class Process:
       tree.GetEntry(i)
       self.spill = data.GetSpill()
       if not self.spill.GetDaqEventType() == "physics_event":
-        _output.Message("Not a physics event")
         continue
       if self.spill.GetReconEvents().size() == 0 and \
          self.spill.GetMCEvents().size() == 0:

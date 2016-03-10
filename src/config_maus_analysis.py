@@ -4,8 +4,8 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":-5,             # Maximum event to process to, negative for max
-"min_event":0,              # Minimum event to process, testing purposes
+"event_cut":34000,             # Maximum event to process to, negative for max
+"min_event":33000,              # Minimum event to process, testing purposes
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
@@ -18,12 +18,12 @@ check_config = {
 
 # Analysis functions, turns functions On(False)/Off(True)
 "ignore_SP_to_Virt":             True,
-"ignore_SP_Fill_ROOT":           False,
+"ignore_SP_Fill_ROOT":           True,
 "ignore_Virt_Fill_ROOT":         True,
-"ignore_TOF_Timing_Info":        False,
+"ignore_TOF_Timing_Info":        True,
 "ignore_Generate_Virtual_Map":   True,
-"ignore_Station_Alignment":      True,
-"ignore_TOF_Tkr_Res":            False,
+"ignore_Station_Alignment":      False,
+"ignore_TOF_Tkr_Res":            True,
 
 
 # Counters
@@ -60,6 +60,8 @@ analysis_config = {
 "tk_data_req":14,          # Number of reconstructed track points with data
 "min_data":9,              # Bad data criteria for events with two tracks.   
 "p_cut":0.05,              # Lower limit for reconstructed track P-values
+"min_trip":3,
+"req_trip":5,
 }
 
 out_config = {

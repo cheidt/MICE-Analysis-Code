@@ -50,5 +50,6 @@ def Message(*args, **kwargs):
     print string
   log = open(_config["log_file"],"a")
   log.write(string)
+  log.write("\n")
   log.close()
   

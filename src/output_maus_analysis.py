@@ -44,7 +44,7 @@ def Message(*args, **kwargs):
   for i in args:
     string = string + str(i)
   if "exc" in kwargs:
-    if kwargs["exc"] == True:
+    if kwargs["exc"] == True or kwargs["exc"] == "testing":
       print string
   elif _config["verbose"] == True:
     print string

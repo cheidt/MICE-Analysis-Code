@@ -21,12 +21,13 @@ class Process:
     self.st_align = _st_align.ST_Alignment()
     self.analysis = _analysis.Analysis()
     self.Read_Spills()
-    clear_log = open(_config["log_file"],"w")
-    clear_log.close()
 
 #########################################################################################
   # Reads MICE spill data
   def Read_Spills(self):
+    _output.Message("INITALIZING LOG FILE: ",_config["log_file"])
+    clear_log = open(_config["log_file"],"w")
+    clear_log.close()
     file_in = self.Load_file()
     _output.Message("READING MAUS FILE: ", file_in, exc=True)
     root_file = ROOT.TFile(file_in, "READ") 

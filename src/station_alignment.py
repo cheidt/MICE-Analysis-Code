@@ -14,6 +14,7 @@ class ST_Alignment(object):
 
   def StS_Collect_Space_Points(self, tracks):
     self.count += 1
+    print "Alignment Event: ",self.count
     for detector in tracks:
       if not len(tracks[detector]) == 1:
         if len(tracks[detector]) == 0:
@@ -64,18 +65,18 @@ class ST_Alignment(object):
           self.spaces[detector][self.count] = temp
 
   def Station_Alignment(self):
+#    print "alignment"
     for detector in self.spaces:
       for cut_station in range(1,6):
-        x_exp = y_exp = temp = {}
+        x_exp, y_exp, x_exp = {}, {}, {}
         for event in self.spaces[detector]:
           space = self.spaces[detector][event][cut_station]
           temp = copy.deepcopy(self.spaces[detector][event])
           temp.pop(cut_station, None)
           line = self.Draw_Line(temp)
-
-          x_exp[event] = line["mx"]*space["z_pos"]+line["bx"]
+          x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
           x_res        = x_exp[event] - space["x_pos"]
-          y_exp[event] = line["my"]*space["z_pos"]+line["by"]
+          y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
           y_res        = y_exp[event] - space["y_pos"]
 
           name  = "st_st_residual"
@@ -91,38 +92,24 @@ class ST_Alignment(object):
 
   def Draw_Line(self, seeds):
     temp = {}
-#    x = [1,2,3,4]
-#    y = [6,5,7,10]
-#    c1 = c2 = a1 = a2 = a3 = a4 = 0
-#    for i in range(len(x)):
-#      c1 += y[i]
-#      c2 += x[i]*y[i]
-#      a1 += 1
-#      a2 += x[i]
-#      a3 += x[i]
-#      a4 += x[i]**2
-#    a = np.array([[a1,a3],[a2,a4]])
-#    b = np.array([c1,c2])
-#    x = np.linalg.solve(a,b)
-#    print x
     for dim in ["x", "y"]:
       pos = dim+"_pos"
-      a1 = a2 = a3 = a4 = c1 = c2 = 0
+      a1, a2, a3, a4, c1, c2 = 0, 0, 0, 0 ,0 ,0
       for station in seeds:
         try:
-          c1 += seeds[station][pos]
-          c2 += seeds[station][pos]*seeds[station]["z_pos"]
-          a4 += seeds[station]["z_pos"]
-          a3 += 1
-          a2 += seeds[station][pos]**2
-          a1 += seeds[station][pos]
+          c1 += seeds[station][pos]*seeds[station]["z_pos"]
+          c2 += seeds[station][pos]
+          a1 += seeds[station]["z_pos"]**2
+          a2 += seeds[station]["z_pos"]
+          a3 += seeds[station]["z_pos"]
+          a4 += 1
         except KeyError:
           print "Fit error"
           print "Station ", station
           print seeds
-        
-      a = np.array([[a1,a3],[a2,a4]])
-      b = np.array([c1,c2])
+
+      a = np.matrix([[a1,a2],[a3,a4]])
+      b = np.matrix([[c1],[c2]])
       x = np.linalg.solve(a,b)
       m_dim = "m"+dim
       b_dim = "b"+dim
@@ -132,4 +119,4 @@ class ST_Alignment(object):
 
   def Find_Coefficents(self, spaces, x_exp, y_exp):
     for event in spaces:
-    
+      pass

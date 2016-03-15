@@ -67,8 +67,9 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def Station_Alignment(self):
-#    print "alignment"
+    fit = {}
     for detector in self.spaces:
+      fit[detector] = {}
       for cut_station in range(1,6):
         x_exp, y_exp, x_exp = {}, {}, {}
         for event in self.spaces[detector]:
@@ -88,7 +89,11 @@ class ST_Alignment(object):
                       500, -250 , 250, 500, -250 , 250, \
                       detector=i, station=cut_station)
 
-        self.Find_Coefficents(self.spaces[detector], x_exp, y_exp, cut_station)
+        fit[detector][cut_station] = self.Find_Coefficents(\
+                                     self.spaces[detector], x_exp, y_exp, \
+                                          cut_station)
+
+    self.Move_Points(fit)
 
     self.o.Write()
 
@@ -132,9 +137,11 @@ class ST_Alignment(object):
     c1,c2,c3,c4 = 0,0,0,0
     d1,d2,d3,d4 = 0,0,0,0
     e1,e2,e3,e4 = 0,0,0,0
+    
+    temp = {}
     for event in spaces:
       seed = spaces[event][station]
-
+      
       b11 += seed["x_pos"]**2
       b12 += seed["x_pos"] * seed["y_pos"]
       b13 += seed["x_pos"] * seed["z_pos"]
@@ -176,6 +183,28 @@ class ST_Alignment(object):
     row2 = np.linalg.solve(b,d)
     row3 = np.linalg.solve(b,e)
 
-    print "row1\n", row1
-    print "row2\n", row2
-    print "row3\n", row3,"\n"
+    temp = np.matrix([[row1.item(0),row1.item(1),row1.item(2),row1.item(3)], \
+                      [row2.item(0),row2.item(1),row2.item(2),row2.item(3)], \
+                      [row3.item(0),row3.item(1),row3.item(2),row3.item(3)], \
+                      [0,           0,           0,           1]])
+
+    return temp
+
+#########################################################################################
+  # 
+  def Move_Points(self, fit):
+    for detector in self.spaces:
+      for station in range (1,6):
+        for event in self.spaces[detector]:
+          point = self.spaces[detector][event][station]
+          
+          print fit[detector][station]
+          
+          tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
+                            [point["z_pos"]],[1]])
+          print tran
+          new_pos = fit[detector][station]*tran
+          
+          print "Old Positions\n",tran
+          print "New Positions\n",new_pos,"\n\n"
+    

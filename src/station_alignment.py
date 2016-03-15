@@ -11,10 +11,10 @@ class ST_Alignment(object):
     self.spaces = {"upstream":{}, \
                    "downstream":{}}
     self.count  = 0
-
+#########################################################################################
+  # 
   def StS_Collect_Space_Points(self, tracks):
     self.count += 1
-    print "Alignment Event: ",self.count
     for detector in tracks:
       if not len(tracks[detector]) == 1:
         if len(tracks[detector]) == 0:
@@ -64,6 +64,8 @@ class ST_Alignment(object):
         if use_event == True:
           self.spaces[detector][self.count] = temp
 
+#########################################################################################
+  # 
   def Station_Alignment(self):
 #    print "alignment"
     for detector in self.spaces:
@@ -86,10 +88,12 @@ class ST_Alignment(object):
                       500, -250 , 250, 500, -250 , 250, \
                       detector=i, station=cut_station)
 
-        self.Find_Coefficents(temp, x_exp, y_exp)
+        self.Find_Coefficents(self.spaces[detector], x_exp, y_exp, cut_station)
 
     self.o.Write()
 
+#########################################################################################
+  # 
   def Draw_Line(self, seeds):
     temp = {}
     for dim in ["x", "y"]:
@@ -117,6 +121,61 @@ class ST_Alignment(object):
       temp[b_dim] = x[1]
     return temp
 
-  def Find_Coefficents(self, spaces, x_exp, y_exp):
+#########################################################################################
+  # 
+  def Find_Coefficents(self, spaces, x_exp, y_exp, station):
+    b11,b12,b13,b14 = 0,0,0,0
+    b21,b22,b23,b24 = 0,0,0,0
+    b31,b32,b33,b34 = 0,0,0,0
+    b41,b42,b43,b44 = 0,0,0,0
+    
+    c1,c2,c3,c4 = 0,0,0,0
+    d1,d2,d3,d4 = 0,0,0,0
+    e1,e2,e3,e4 = 0,0,0,0
     for event in spaces:
-      pass
+      seed = spaces[event][station]
+
+      b11 += seed["x_pos"]**2
+      b12 += seed["x_pos"] * seed["y_pos"]
+      b13 += seed["x_pos"] * seed["z_pos"]
+      b14 += seed["x_pos"]
+      b21 += seed["x_pos"] * seed["y_pos"]
+      b22 += seed["y_pos"]**2
+      b23 += seed["y_pos"] * seed["z_pos"]
+      b24 += seed["y_pos"]
+      b31 += seed["x_pos"] * seed["z_pos"]
+      b32 += seed["y_pos"] * seed["z_pos"]
+      b33 += seed["z_pos"]**2
+      b34 += seed["z_pos"]
+      b41 += seed["x_pos"]
+      b42 += seed["y_pos"]
+      b43 += seed["z_pos"]
+      b44 += 1
+
+      c1 += seed["x_pos"] * x_exp[event]
+      c2 += seed["y_pos"] * x_exp[event]
+      c3 += seed["z_pos"] * x_exp[event]
+      c4 += x_exp[event]
+
+      d1 += seed["x_pos"] * y_exp[event]
+      d2 += seed["y_pos"] * y_exp[event]
+      d3 += seed["z_pos"] * y_exp[event]
+      d4 += y_exp[event]
+
+      e1 += seed["x_pos"] * seed["z_pos"]
+      e2 += seed["y_pos"] * seed["z_pos"]
+      e3 += seed["z_pos"] * seed["z_pos"]
+      e4 += seed["z_pos"]
+
+    b = np.matrix([[b11,b12,b13,b14],[b21,b22,b23,b24],\
+                   [b31,b32,b33,b34],[b41,b42,b43,b44]])
+    c    = np.matrix([[c1],[c2],[c3],[c4]])
+    d    = np.matrix([[d1],[d2],[d3],[d4]])
+    e    = np.matrix([[e1],[e2],[e3],[e4]])
+    row1 = np.linalg.solve(b,c)
+    row2 = np.linalg.solve(b,d)
+    row3 = np.linalg.solve(b,e)
+
+    print "row1\n", row1
+    print "row2\n", row2
+    print "row3\n", row3,"\n"

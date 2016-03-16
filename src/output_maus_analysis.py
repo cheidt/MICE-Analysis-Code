@@ -10,10 +10,13 @@ class Output(object):
   def Fill(self, name, title, *args, **kwargs):
     if "detector" in kwargs:
       title = title + " " + kwargs["detector"]
-      name = name + "_" + kwargs["detector"]
+      name  = name + "_" + kwargs["detector"]
     if "station" in kwargs:
       title = title + " " + str(kwargs["station"])
-      name = name + "_" + str(kwargs["station"])
+      name  = name + "_" + str(kwargs["station"])
+    if "iteration" in kwargs:
+      title = title + " itr " + str(kwargs["iteration"])
+      name  = name + "_" + str(kwargs["iteration"])
     if name not in self.hist_container:
       self.Initialize(name, title, args)
     else:

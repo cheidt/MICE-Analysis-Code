@@ -7,10 +7,13 @@ import copy
 class ST_Alignment(object):
   def __init__ (self):
     print "INITALIZING ALIGNMENT"
-    self.o = _output.Output("station_alignment")
-    self.spaces = {"upstream":{}, \
-                   "downstream":{}}
-    self.count  = 0
+    self.o_res   = _output.Output("station_alignment")
+    self.o_prof  = _output.Output("beam_profile")
+    self.spaces  = {"upstream":{}, \
+                    "downstream":{}}
+    self.transit = {"upstream":{}, \
+                    "downstream":{}}
+    self.count   = 0
 #########################################################################################
   # 
   def StS_Collect_Space_Points(self, tracks):
@@ -67,35 +70,48 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def Station_Alignment(self):
-    fit = {}
-    for detector in self.spaces:
-      fit[detector] = {}
-      for cut_station in range(1,6):
-        x_exp, y_exp, x_exp = {}, {}, {}
-        for event in self.spaces[detector]:
-          space = self.spaces[detector][event][cut_station]
-          temp = copy.deepcopy(self.spaces[detector][event])
-          temp.pop(cut_station, None)
-          line = self.Draw_Line(temp)
-          x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
-          x_res        = x_exp[event] - space["x_pos"]
-          y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
-          y_res        = y_exp[event] - space["y_pos"]
+    self.transit = copy.deepcopy(self.spaces)
+    loop = 0
+    while loop < 4:
+      _output.Message("Loop over data number ",loop,exc="Always")
+      loop += 1
+      fit = {}
+      for detector in self.spaces:
+        fit[detector] = {}
+        for cut_station in range(1,6):
+          x_exp, y_exp, x_exp = {}, {}, {}
+          for event in self.spaces[detector]:
+            space = self.transit[detector][event][cut_station]
+            temp = copy.deepcopy(self.transit[detector][event])
+            temp.pop(cut_station, None)
+            line = self.Draw_Line(temp)
+            x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
+            x_res        = x_exp[event] - space["x_pos"]
+            y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
+            y_res        = y_exp[event] - space["y_pos"]
 
-          name  = "st_st_residual"
-          title = "Four Station Residual"
-          i = "TKU" if detector == "upstream" else "TKD"
-          self.o.Fill(name, title, x_res, y_res, \
-                      500, -250 , 250, 500, -250 , 250, \
-                      detector=i, station=cut_station)
+            name  = "st_st_residual"
+            title = "Four Station Residual"
+            self.o_res.Fill(name, title, x_res, y_res, \
+                            500, -50 , 50, 500, -50 , 50, \
+                            detector=detector, station=cut_station, \
+                            iteration=loop)
+            name  = "st_st_profile"
+            title = "Beam Profile in Space Points"
+            self.o_prof.Fill(name, title, space["x_pos"], space["y_pos"], \
+                             500, -250 , 250, 500, -250 , 250, \
+                             detector=detector, station=cut_station, \
+                             iteration=loop)
+            
 
-        fit[detector][cut_station] = self.Find_Coefficents(\
-                                     self.spaces[detector], x_exp, y_exp, \
-                                          cut_station)
+          fit[detector][cut_station] = self.Find_Coefficents(\
+                                       self.transit[detector], x_exp, y_exp, \
+                                            cut_station)
 
-    self.Move_Points(fit)
+      self.Move_Points(fit)
 
-    self.o.Write()
+    self.o_res.Write()
+    self.o_prof.Write()
 
 #########################################################################################
   # 
@@ -193,18 +209,15 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def Move_Points(self, fit):
-    for detector in self.spaces:
+    step = 0.25
+    for detector in self.transit:
       for station in range (1,6):
-        for event in self.spaces[detector]:
-          point = self.spaces[detector][event][station]
-          
-          print fit[detector][station]
-          
+        for event in self.transit[detector]:
+          point = self.transit[detector][event][station]
           tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
                             [point["z_pos"]],[1]])
-          print tran
-          new_pos = fit[detector][station]*tran
-          
-          print "Old Positions\n",tran
-          print "New Positions\n",new_pos,"\n\n"
-    
+          temp = fit[detector][station]*tran
+
+          point["x_pos"] += step * (point["x_pos"] - temp.item(0))
+          point["x_pos"] += step * (point["y_pos"] - temp.item(1))
+          point["x_pos"] += step * (point["z_pos"] - temp.item(2))

@@ -126,14 +126,13 @@ class ST_Alignment(object):
           c2 += seeds[station][pos]
           a1 += seeds[station]["z_pos"]**2
           a2 += seeds[station]["z_pos"]
-          a3 += seeds[station]["z_pos"]
           a4 += 1
         except KeyError:
           print "Fit error"
           print "Station ", station
           print seeds
 
-      a = np.matrix([[a1,a2],[a3,a4]])
+      a = np.matrix([[a1,a2],[a2,a4]])
       b = np.matrix([[c1],[c2]])
       x = np.linalg.solve(a,b)
       m_dim = "m"+dim
@@ -162,17 +161,11 @@ class ST_Alignment(object):
       b12 += seed["x_pos"] * seed["y_pos"]
       b13 += seed["x_pos"] * seed["z_pos"]
       b14 += seed["x_pos"]
-      b21 += seed["x_pos"] * seed["y_pos"]
       b22 += seed["y_pos"]**2
       b23 += seed["y_pos"] * seed["z_pos"]
       b24 += seed["y_pos"]
-      b31 += seed["x_pos"] * seed["z_pos"]
-      b32 += seed["y_pos"] * seed["z_pos"]
       b33 += seed["z_pos"]**2
       b34 += seed["z_pos"]
-      b41 += seed["x_pos"]
-      b42 += seed["y_pos"]
-      b43 += seed["z_pos"]
       b44 += 1
 
       c1 += seed["x_pos"] * x_exp[event]
@@ -190,8 +183,8 @@ class ST_Alignment(object):
       e3 += seed["z_pos"] * seed["z_pos"]
       e4 += seed["z_pos"]
 
-    b = np.matrix([[b11,b12,b13,b14],[b21,b22,b23,b24],\
-                   [b31,b32,b33,b34],[b41,b42,b43,b44]])
+    b = np.matrix([[b11,b12,b13,b14],[b12,b22,b23,b24],\
+                   [b13,b23,b33,b34],[b14,b24,b34,b44]])
     c    = np.matrix([[c1],[c2],[c3],[c4]])
     d    = np.matrix([[d1],[d2],[d3],[d4]])
     e    = np.matrix([[e1],[e2],[e3],[e4]])

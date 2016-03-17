@@ -202,7 +202,7 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def Move_Points(self, fit):
-    step = 0.25
+    step = 0.05
     for detector in self.transit:
       for station in range (1,6):
         for event in self.transit[detector]:
@@ -211,6 +211,6 @@ class ST_Alignment(object):
                             [point["z_pos"]],[1]])
           temp = fit[detector][station]*tran
 
-          point["x_pos"] += step * (point["x_pos"] - temp.item(0))
-          point["x_pos"] += step * (point["y_pos"] - temp.item(1))
-          point["x_pos"] += step * (point["z_pos"] - temp.item(2))
+          point["x_pos"] += step * (temp.item(0) - point["x_pos"])
+          point["x_pos"] += step * (temp.item(1) - point["y_pos"])
+          point["x_pos"] += step * (temp.item(2) - point["z_pos"])

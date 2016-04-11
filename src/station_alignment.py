@@ -2,6 +2,7 @@ from config_maus_analysis import analysis_config as _config
 import output_maus_analysis as _output
 import numpy as np
 import copy
+import math as m
 #########################################################################################
   # 
 class ST_Alignment(object):
@@ -14,6 +15,7 @@ class ST_Alignment(object):
     self.transit = {"upstream":{}, \
                     "downstream":{}}
     self.count   = 0
+    self.position = {"x":0, "y":0, "z":0, "theta":0, "psi":0, "phi":0}
 #########################################################################################
   # 
   def StS_Collect_Space_Points(self, tracks):
@@ -223,14 +225,46 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def Move_Points(self, fit):
-    step = .20
+    step = .25
+    
     for detector in self.transit:
       for station in range (1,6):
+        x     =  fit[detector][station].item(3)
+        y     =  fit[detector][station].item(7)
+        z     =  fit[detector][station].item(11)
+        phi   =  fit[detector][station].item(1)
+        psi   =  fit[detector][station].item(6)
+        theta = -fit[detector][station].item(2)
+        
+        sx  = self.position["x"]     = step * (x - self.position["x"]) + \
+                                       self.position["x"]
+        sy  = self.position["y"]     = step * (y - self.position["y"]) + \
+                                       self.position["y"]
+        sz  = self.position["z"]     = step * (z - self.position["z"]) + \
+                                       self.position["z"]
+        sph = self.position["phi"]   = step * (phi - self.position["phi"]) + \
+                                       self.position["phi"]
+        sps = self.position["psi"]   = step * (psi - self.position["psi"]) + \
+                                       self.position["psi"]
+        sth = self.position["theta"] = step * (theta - self.position["theta"]) + \
+                                       self.position["theta"]
+        
+        step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
+                              -m.sin(sth), sx], \
+                              [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
+                               m.sin(sps)*m.sin(sth)*m.sin(sph) + m.cos(sps)*m.cos(sph), \
+                               m.cos(sth)*m.sin(sps), sy], \
+                              [m.cos(sps)*m.sin(sth)*m.cos(sph) + m.sin(sps)*m.sin(sph), \
+                               m.cos(sps)*m.sin(sth)*m.sin(sph) - m.sin(sps)*m.cos(sph), \
+                               m.cos(sth)*m.cos(sps), sz], \
+                              [0, 0, 0, 1]])
+        print step_fit
+        
         for event in self.transit[detector]:
           point = self.transit[detector][event][station]
           tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
                             [point["z_pos"]],[1]])
-          temp = fit[detector][station]*tran
+          temp = step_fit*tran
 
           point["x_pos"] += step * (temp.item(0) - point["x_pos"])
           point["y_pos"] += step * (temp.item(1) - point["y_pos"])

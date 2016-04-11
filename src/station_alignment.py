@@ -51,7 +51,7 @@ class ST_Alignment(object):
       for station in tracks[detector][0]["seeds"][0][detector]:
         if not len(tracks[detector][0]["seeds"][0][detector][station]) == 1:
           _output.Message("Phantom space point in ",detector," ",station, \
-                                                    exc="Always")
+                                                    exc=True)
 
       for seeds in tracks[detector][0]["seeds"]:
         temp = {}
@@ -71,15 +71,18 @@ class ST_Alignment(object):
   # 
   def Station_Alignment(self):
     self.transit = copy.deepcopy(self.spaces)
+    chi_sq = {}
     loop = 0
-    while loop < 4:
-      _output.Message("Loop over data number ",loop,exc="Always")
+    while loop < 10:
+      _output.Message("Loop over data number ", loop, exc=True)
       loop += 1
+      chi_sq[loop] = {"upstream":{},
+                      "downstream":{}}
       fit = {}
       for detector in self.spaces:
         fit[detector] = {}
         for cut_station in range(1,6):
-          x_exp, y_exp, x_exp = {}, {}, {}
+          x_exp, y_exp, res = {}, {}, {}
           for event in self.spaces[detector]:
             space = self.transit[detector][event][cut_station]
             temp = copy.deepcopy(self.transit[detector][event])
@@ -89,6 +92,7 @@ class ST_Alignment(object):
             x_res        = x_exp[event] - space["x_pos"]
             y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
             y_res        = y_exp[event] - space["y_pos"]
+            res[event]   = (y_res**2 + x_res**2)**0.5
 
             name  = "st_st_residual"
             title = "Four Station Residual"
@@ -102,14 +106,21 @@ class ST_Alignment(object):
                              500, -250 , 250, 500, -250 , 250, \
                              detector=detector, station=cut_station, \
                              iteration=loop)
-            
 
+          chi_sq[loop][detector][cut_station] = self.Chi_Squared(res)
           fit[detector][cut_station] = self.Find_Coefficents(\
                                        self.transit[detector], x_exp, y_exp, \
                                             cut_station)
 
       self.Move_Points(fit)
-
+      if loop > 1:
+        for det in chi_sq[loop]:
+          print det, "_________________________________"
+          for stat in chi_sq[loop][det]:
+            print "%.4f" % chi_sq[loop-1][det][stat] , "    ", \
+                  "%.4f" % chi_sq[loop][det][stat]
+                  
+      
     self.o_res.Write()
     self.o_prof.Write()
 
@@ -201,8 +212,18 @@ class ST_Alignment(object):
 
 #########################################################################################
   # 
+  def Chi_Squared(self, x):
+    mean   = sum(x.values())/len(x)
+    n      = len(x)
+    chi_sq = 0
+    for i in x:
+      chi_sq += ((x[i]-mean)**2)/(mean*n)
+    return chi_sq
+
+#########################################################################################
+  # 
   def Move_Points(self, fit):
-    step = 0.05
+    step = .20
     for detector in self.transit:
       for station in range (1,6):
         for event in self.transit[detector]:
@@ -212,5 +233,5 @@ class ST_Alignment(object):
           temp = fit[detector][station]*tran
 
           point["x_pos"] += step * (temp.item(0) - point["x_pos"])
-          point["x_pos"] += step * (temp.item(1) - point["y_pos"])
-          point["x_pos"] += step * (temp.item(2) - point["z_pos"])
+          point["y_pos"] += step * (temp.item(1) - point["y_pos"])
+          point["z_pos"] += step * (temp.item(2) - point["z_pos"])

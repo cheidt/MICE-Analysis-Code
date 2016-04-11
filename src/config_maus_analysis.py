@@ -4,7 +4,7 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":-5,             # Maximum event to process to, negative for max
+"event_cut":-5000,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
@@ -36,7 +36,8 @@ check_config = {
 
 # Maus data
 "file_name":"maus_output.root",
-"data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
+"data_directory":"/vols/fets2/heidt/offline/analysis/7417_bad_geo/",
+#"data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
 #"file_name":"maus_output_geo_123_geo_inverse.root",
 #"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 "log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
@@ -66,7 +67,7 @@ analysis_config = {
 
 out_config = {
 "output_dir":os.environ['ANALYSIS_DIR']+"/output/",
-"output_file":"_output_geo_123_geo_7417.root",
+"output_file":"_output_geo_123_geo_7417_bad.root",
 "log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
 "verbose":False,
 }

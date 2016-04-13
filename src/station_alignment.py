@@ -15,7 +15,26 @@ class ST_Alignment(object):
     self.transit = {"upstream":{}, \
                     "downstream":{}}
     self.count   = 0
-    self.position = {"x":0, "y":0, "z":0, "theta":0, "psi":0, "phi":0}
+    self.position = {"upstream":{1:{"x":0, "y":0, "z":0, \
+                                    "theta":0, "psi":0, "phi":0}, \
+                                 2:{"x":0, "y":0, "z":0, \
+                                    "theta":0, "psi":0, "phi":0}, \
+                                 3:{"x":0, "y":0, "z":0, \
+                                    "theta":0, "psi":0, "phi":0}, \
+                                 4:{"x":0, "y":0, "z":0, \
+                                    "theta":0, "psi":0, "phi":0}, \
+                                 5:{"x":0, "y":0, "z":0, \
+                                    "theta":0, "psi":0, "phi":0}}, \
+                     "downstream":{1:{"x":0, "y":0, "z":0, \
+                                      "theta":0, "psi":0, "phi":0}, \
+                                   2:{"x":0, "y":0, "z":0, \
+                                      "theta":0, "psi":0, "phi":0}, \
+                                   3:{"x":0, "y":0, "z":0, \
+                                      "theta":0, "psi":0, "phi":0}, \
+                                   4:{"x":0, "y":0, "z":0, \
+                                      "theta":0, "psi":0, "phi":0}, \
+                                   5:{"x":0, "y":0, "z":0, \
+                                      "theta":0, "psi":0, "phi":0}}}
 #########################################################################################
   # 
   def StS_Collect_Space_Points(self, tracks):
@@ -75,7 +94,7 @@ class ST_Alignment(object):
     self.transit = copy.deepcopy(self.spaces)
     chi_sq = {}
     loop = 0
-    while loop < 10:
+    while loop < 50:
       _output.Message("Loop over data number ", loop, exc=True)
       loop += 1
       chi_sq[loop] = {"upstream":{},
@@ -236,35 +255,48 @@ class ST_Alignment(object):
         psi   =  fit[detector][station].item(6)
         theta = -fit[detector][station].item(2)
         
-        sx  = self.position["x"]     = step * (x - self.position["x"]) + \
-                                       self.position["x"]
-        sy  = self.position["y"]     = step * (y - self.position["y"]) + \
-                                       self.position["y"]
-        sz  = self.position["z"]     = step * (z - self.position["z"]) + \
-                                       self.position["z"]
-        sph = self.position["phi"]   = step * (phi - self.position["phi"]) + \
-                                       self.position["phi"]
-        sps = self.position["psi"]   = step * (psi - self.position["psi"]) + \
-                                       self.position["psi"]
-        sth = self.position["theta"] = step * (theta - self.position["theta"]) + \
-                                       self.position["theta"]
+#        print "Old: ", self.position[detector][station]["x"]
+#        print "Initial: ",x
+        sx  = self.position[detector][station]["x"]     = \
+              step * (x - self.position[detector][station]["x"]) + \
+              self.position[detector][station]["x"]
+        sy  = self.position[detector][station]["y"]     = \
+              step * (y - self.position[detector][station]["y"]) + \
+              self.position[detector][station]["y"]
+        sz  = self.position[detector][station]["z"]     = \
+              step * (z - self.position[detector][station]["z"]) + \
+              self.position[detector][station]["z"]
+        sph = self.position[detector][station]["phi"]   = \
+              step * (phi - self.position[detector][station]["phi"]) + \
+              self.position[detector][station]["phi"]
+        sps = self.position[detector][station]["psi"]   = \
+              step * (psi - self.position[detector][station]["psi"]) + \
+              self.position[detector][station]["psi"]
+        sth = self.position[detector][station]["theta"] = \
+              step * (theta - self.position[detector][station]["theta"]) + \
+              self.position[detector][station]["theta"]
+#        print "New: ", self.position[detector][station]["x"]
+        print fit[detector][station]
         
-        step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
-                              -m.sin(sth), sx], \
-                              [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
-                               m.sin(sps)*m.sin(sth)*m.sin(sph) + m.cos(sps)*m.cos(sph), \
-                               m.cos(sth)*m.sin(sps), sy], \
-                              [m.cos(sps)*m.sin(sth)*m.cos(sph) + m.sin(sps)*m.sin(sph), \
-                               m.cos(sps)*m.sin(sth)*m.sin(sph) - m.sin(sps)*m.cos(sph), \
-                               m.cos(sth)*m.cos(sps), sz], \
-                              [0, 0, 0, 1]])
-        print step_fit
-        
+#        step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
+#                              -m.sin(sth), sx], \
+#                              [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
+#                               m.sin(sps)*m.sin(sth)*m.sin(sph) + m.cos(sps)*m.cos(sph), \
+#                               m.cos(sth)*m.sin(sps), sy], \
+#                              [m.cos(sps)*m.sin(sth)*m.cos(sph) + m.sin(sps)*m.sin(sph), \
+#                               m.cos(sps)*m.sin(sth)*m.sin(sph) - m.sin(sps)*m.cos(sph), \
+#                               m.cos(sth)*m.cos(sps), sz], \
+#                              [0, 0, 0, 1]])
+
+        step_fit = np.matrix([[1,phi,-theta,x],[-phi+psi*theta,1+psi*phi*theta,psi,y],[theta+psi*phi,-psi+theta*phi,1,z],[0,0,0,1]])
+#        print step_fit, "\n"
+
         for event in self.transit[detector]:
           point = self.transit[detector][event][station]
           tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
                             [point["z_pos"]],[1]])
-          temp = step_fit*tran
+#          temp = step_fit*tran
+          temp = fit[detector][station]*tran
 
           point["x_pos"] += step * (temp.item(0) - point["x_pos"])
           point["y_pos"] += step * (temp.item(1) - point["y_pos"])

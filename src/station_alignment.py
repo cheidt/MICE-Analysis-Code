@@ -94,7 +94,7 @@ class ST_Alignment(object):
     self.transit = copy.deepcopy(self.spaces)
     chi_sq = {}
     loop = 0
-    while loop < 50:
+    while loop < 15:
       _output.Message("Loop over data number ", loop, exc=True)
       loop += 1
       chi_sq[loop] = {"upstream":{},
@@ -134,12 +134,12 @@ class ST_Alignment(object):
                                             cut_station)
 
       self.Move_Points(fit)
-      if loop > 1:
-        for det in chi_sq[loop]:
-          print det, "_________________________________"
-          for stat in chi_sq[loop][det]:
-            print "%.4f" % chi_sq[loop-1][det][stat] , "    ", \
-                  "%.4f" % chi_sq[loop][det][stat]
+#      if loop > 1:
+#        for det in chi_sq[loop]:
+#          print det, "_________________________________"
+#          for stat in chi_sq[loop][det]:
+#            print "%.4f" % chi_sq[loop-1][det][stat] , "    ", \
+#                  "%.4f" % chi_sq[loop][det][stat]
                   
       
     self.o_res.Write()
@@ -215,8 +215,8 @@ class ST_Alignment(object):
       e3 += seed["z_pos"] * seed["z_pos"]
       e4 += seed["z_pos"]
 
-    b = np.matrix([[b11,b12,b13,b14],[b12,b22,b23,b24],\
-                   [b13,b23,b33,b34],[b14,b24,b34,b44]])
+    b    = np.matrix([[b11,b12,b13,b14],[b12,b22,b23,b24],\
+                      [b13,b23,b33,b34],[b14,b24,b34,b44]])
     c    = np.matrix([[c1],[c2],[c3],[c4]])
     d    = np.matrix([[d1],[d2],[d3],[d4]])
     e    = np.matrix([[e1],[e2],[e3],[e4]])
@@ -250,7 +250,7 @@ class ST_Alignment(object):
       for station in range (1,6):
         x     =  fit[detector][station].item(3)
         y     =  fit[detector][station].item(7)
-        z     =  fit[detector][station].item(11)
+        z     =  0
         phi   =  fit[detector][station].item(1)
         psi   =  fit[detector][station].item(6)
         theta = -fit[detector][station].item(2)
@@ -267,36 +267,45 @@ class ST_Alignment(object):
               step * (z - self.position[detector][station]["z"]) + \
               self.position[detector][station]["z"]
         sph = self.position[detector][station]["phi"]   = \
-              step * (phi - self.position[detector][station]["phi"]) + \
+              (phi - self.position[detector][station]["phi"]) + \
               self.position[detector][station]["phi"]
         sps = self.position[detector][station]["psi"]   = \
-              step * (psi - self.position[detector][station]["psi"]) + \
+              (psi - self.position[detector][station]["psi"]) + \
               self.position[detector][station]["psi"]
         sth = self.position[detector][station]["theta"] = \
-              step * (theta - self.position[detector][station]["theta"]) + \
+              (theta - self.position[detector][station]["theta"]) + \
               self.position[detector][station]["theta"]
 #        print "New: ", self.position[detector][station]["x"]
-        print fit[detector][station]
+#        print fit[detector][station],"\n"
         
-#        step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
-#                              -m.sin(sth), sx], \
-#                              [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
-#                               m.sin(sps)*m.sin(sth)*m.sin(sph) + m.cos(sps)*m.cos(sph), \
-#                               m.cos(sth)*m.sin(sps), sy], \
-#                              [m.cos(sps)*m.sin(sth)*m.cos(sph) + m.sin(sps)*m.sin(sph), \
-#                               m.cos(sps)*m.sin(sth)*m.sin(sph) - m.sin(sps)*m.cos(sph), \
-#                               m.cos(sth)*m.cos(sps), sz], \
-#                              [0, 0, 0, 1]])
+#        step_fit = np.matrix([[m.cos(theta)*m.cos(phi), m.cos(theta)*m.sin(phi), \
+#                              -m.sin(theta), x], \
+#                              [m.sin(psi)*m.sin(theta)*m.cos(phi) - m.cos(psi)*m.sin(phi), \
+#                               m.sin(psi)*m.sin(theta)*m.sin(phi) + m.cos(psi)*m.cos(phi), \
+#                               m.cos(theta)*m.sin(psi), y], \
+#                              [m.cos(psi)*m.sin(theta)*m.cos(phi) + m.sin(psi)*m.sin(phi), \
+#                               m.cos(psi)*m.sin(theta)*m.sin(phi) - m.sin(psi)*m.cos(phi), \
+#                               m.cos(theta)*m.cos(psi), z], \
+#                              [0, 0, 0, 1]])        
+        step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
+                              -m.sin(sth), sx], \
+                              [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
+                               m.sin(sps)*m.sin(sth)*m.sin(sph) + m.cos(sps)*m.cos(sph), \
+                               m.cos(sth)*m.sin(sps), sy], \
+                              [m.cos(sps)*m.sin(sth)*m.cos(sph) + m.sin(sps)*m.sin(sph), \
+                               m.cos(sps)*m.sin(sth)*m.sin(sph) - m.sin(sps)*m.cos(sph), \
+                               m.cos(sth)*m.cos(sps), sz], \
+                              [0, 0, 0, 1]])
 
-        step_fit = np.matrix([[1,phi,-theta,x],[-phi+psi*theta,1+psi*phi*theta,psi,y],[theta+psi*phi,-psi+theta*phi,1,z],[0,0,0,1]])
-#        print step_fit, "\n"
+#        step_fit = np.matrix([[1,phi,-theta,x],[-phi+psi*theta,1+psi*phi*theta,psi,y],[theta+psi*phi,-psi+theta*phi,1,z],[0,0,0,1]])
+#        print step_fit, "\n\n"
 
         for event in self.transit[detector]:
           point = self.transit[detector][event][station]
           tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
                             [point["z_pos"]],[1]])
-#          temp = step_fit*tran
-          temp = fit[detector][station]*tran
+          temp = step_fit*tran
+#          temp = fit[detector][station]*tran
 
           point["x_pos"] += step * (temp.item(0) - point["x_pos"])
           point["y_pos"] += step * (temp.item(1) - point["y_pos"])

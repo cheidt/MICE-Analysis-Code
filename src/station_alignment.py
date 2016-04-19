@@ -38,14 +38,13 @@ class ST_Alignment(object):
 #########################################################################################
   # 
   def StS_Collect_Space_Points(self, tracks):
-    self.count += 1
     for detector in tracks:
-      if not len(tracks[detector]) == 1:
-        if len(tracks[detector]) == 0:
+      size = len(tracks[detector])
+      if not size == 1:
+        if size == 0:
           continue
         else:
-          _output.Message("Number of tracks in the ", detector, " ", \
-                           len(tracks[detector]))
+          _output.Message("Number of tracks in the ", detector, " ", size)
           pop_list = []
           for track in range(len(tracks[detector])):
             _output.Message("Track ", track, " has ", tracks[detector]\
@@ -53,16 +52,18 @@ class ST_Alignment(object):
             if int(tracks[detector][track]["triplets"]) <= \
                int(_config["min_trip"]):
               pop_list.append(track)
-          if not len(pop_list) == 0:
+          pop_size = len(pop_list)
+          if not pop_size == 0:
             pop_list.sort(reverse=True)
-            for i in range(len(pop_list)):
+            for i in range(pop_size):
               tracks[detector].pop(pop_list[i])
 
-      if not len(tracks[detector]) == 1:
-        if len(tracks[detector]) == 0:
+      size = len(tracks[detector])
+      if not size == 1:
+        if size == 0:
           _output.Message("No acceptable tracks")
           continue
-        if len(tracks[detector]) > 1:
+        if size > 1:
           _output.Message("Too many tracks")
           continue
 
@@ -75,18 +76,28 @@ class ST_Alignment(object):
                                                     exc=True)
 
       for seeds in tracks[detector][0]["seeds"]:
-        temp = {}
+        temp = np.zeros(5, dtype='3f4')
         use_event = True
         for station in seeds[detector]:
           try:
-            temp[station] = {"x_pos":seeds[detector][station][0]["x_glob_pos"], \
-                             "y_pos":seeds[detector][station][0]["y_glob_pos"], \
-                             "z_pos":seeds[detector][station][0]["z_glob_pos"]}
+            x_pos   = seeds[detector][station][0]["x_glob_pos"]
+            y_pos   = seeds[detector][station][0]["y_glob_pos"]
+            z_pos   = seeds[detector][station][0]["z_glob_pos"]
+            i       = station - 1
+            temp[i] = (x_pos, y_pos, z_pos)
           except IndexError:
             use_event = False
+            print "Don't use event"
             continue
-        if use_event == True:
-          self.spaces[detector][self.count] = temp
+
+      if use_event:
+        positions = self.spaces[detector]
+        if positions:
+          positions = np.vstack((positions[station],temp))
+        else:
+          positions = temp
+      else:
+        print "Not Using event"
 
 #########################################################################################
   # 
@@ -102,36 +113,36 @@ class ST_Alignment(object):
       fit = {}
       for detector in self.spaces:
         fit[detector] = {}
-        for cut_station in range(1,6):
+        for cut_station in range(5):
           x_exp, y_exp, res = {}, {}, {}
-          for event in self.spaces[detector]:
-            space = self.transit[detector][event][cut_station]
-            temp = copy.deepcopy(self.transit[detector][event])
-            temp.pop(cut_station, None)
-            line = self.Draw_Line(temp)
-            x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
-            x_res        = x_exp[event] - space["x_pos"]
-            y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
-            y_res        = y_exp[event] - space["y_pos"]
-            res[event]   = (y_res**2 + x_res**2)**0.5
 
-            name  = "st_st_residual"
-            title = "Four Station Residual"
-            self.o_res.Fill(name, title, x_res, y_res, \
-                            500, -50 , 50, 500, -50 , 50, \
-                            detector=detector, station=cut_station, \
-                            iteration=loop)
-            name  = "st_st_profile"
-            title = "Beam Profile in Space Points"
-            self.o_prof.Fill(name, title, space["x_pos"], space["y_pos"], \
-                             500, -250 , 250, 500, -250 , 250, \
-                             detector=detector, station=cut_station, \
-                             iteration=loop)
+#          space = self.transit[detector][event][cut_station]
+#          temp = copy.deepcopy(self.transit[detector][event])
+#          temp.pop(cut_station, None)
+          line = self.Draw_Line(self.transit, cut_station)
+          x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
+          x_res        = x_exp[event] - space["x_pos"]
+          y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
+          y_res        = y_exp[event] - space["y_pos"]
+          res[event]   = (y_res**2 + x_res**2)**0.5
 
-          chi_sq[loop][detector][cut_station] = self.Chi_Squared(res)
-          fit[detector][cut_station] = self.Find_Coefficents(\
-                                       self.transit[detector], x_exp, y_exp, \
-                                            cut_station)
+          name  = "st_st_residual"
+          title = "Four Station Residual"
+          self.o_res.Fill(name, title, x_res, y_res, \
+                          500, -50 , 50, 500, -50 , 50, \
+                          detector=detector, station=cut_station, \
+                          iteration=loop)
+          name  = "st_st_profile"
+          title = "Beam Profile in Space Points"
+          self.o_prof.Fill(name, title, space["x_pos"], space["y_pos"], \
+                           500, -250 , 250, 500, -250 , 250, \
+                           detector=detector, station=cut_station, \
+                           iteration=loop)
+
+        #chi_sq[loop][detector][cut_station] = self.Chi_Squared(res)
+        fit[detector][cut_station] = self.Find_Coefficents(\
+                                     self.transit[detector], x_exp, y_exp, \
+                                          cut_station)
 
       self.Move_Points(fit)
 #      if loop > 1:
@@ -147,7 +158,7 @@ class ST_Alignment(object):
 
 #########################################################################################
   # 
-  def Draw_Line(self, seeds):
+  def Draw_Line(self, seeds, cut):
     temp = {}
     for dim in ["x", "y"]:
       pos = dim+"_pos"

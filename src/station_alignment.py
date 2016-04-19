@@ -76,7 +76,8 @@ class ST_Alignment(object):
                                                     exc=True)
 
       for seeds in tracks[detector][0]["seeds"]:
-        temp = np.zeros(5, dtype='3f4')
+        temp = np.array([(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0)],
+                  dtype=[('x_pos','f4'),('y_pos','f4'),('z_pos','f4'),])
         use_event = True
         for station in seeds[detector]:
           try:
@@ -90,14 +91,13 @@ class ST_Alignment(object):
             print "Don't use event"
             continue
 
-      if use_event:
-        positions = self.spaces[detector]
-        if positions:
-          positions = np.vstack((positions[station],temp))
+        if use_event:
+          if len(self.spaces[detector]) > 0:
+            self.spaces[detector] = np.vstack((self.spaces[detector],temp))
+          else:
+            self.spaces[detector] = temp
         else:
-          positions = temp
-      else:
-        print "Not Using event"
+          print "Not Using event"
 
 #########################################################################################
   # 

@@ -76,8 +76,10 @@ class ST_Alignment(object):
                                                     exc=True)
 
       for seeds in tracks[detector][0]["seeds"]:
-        temp = np.array([(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0)],
-                  dtype=[('x_pos','f4'),('y_pos','f4'),('z_pos','f4'),])
+        temp = np.array([(0,0,0,0,0),(0,0,0,0,0),(0,0,0,0,0), \
+                         (0,0,0,0,0),(0,0,0,0,0)],
+                  dtype=[('x_pos','f4'),('y_pos','f4'),('z_pos','f4'), \
+                         ('x_exp','f4'),('y_exp','f4')])
         use_event = True
         for station in seeds[detector]:
           try:
@@ -85,7 +87,7 @@ class ST_Alignment(object):
             y_pos   = seeds[detector][station][0]["y_glob_pos"]
             z_pos   = seeds[detector][station][0]["z_glob_pos"]
             i       = station - 1
-            temp[i] = (x_pos, y_pos, z_pos)
+            temp[i] = (x_pos, y_pos, z_pos, 0, 0)
           except IndexError:
             use_event = False
             print "Don't use event"
@@ -105,6 +107,17 @@ class ST_Alignment(object):
     self.transit = copy.deepcopy(self.spaces)
     chi_sq = {}
     loop = 0
+    print self.spaces["upstream"], "\n"
+#    x_array = self.spaces["upstream"]['x_pos']
+#    print x_array, "\n"
+#    x_trim = np.delete(x_array,1,1)
+#    print x_trim, "\n"
+#    print x_array
+#    print self.spaces["upstream"]
+#    temp.view(float,5)
+#    for i in x_array:
+#      print i
+      
     while loop < 15:
       _output.Message("Loop over data number ", loop, exc=True)
       loop += 1
@@ -115,11 +128,7 @@ class ST_Alignment(object):
         fit[detector] = {}
         for cut_station in range(5):
           x_exp, y_exp, res = {}, {}, {}
-
-#          space = self.transit[detector][event][cut_station]
-#          temp = copy.deepcopy(self.transit[detector][event])
-#          temp.pop(cut_station, None)
-          line = self.Draw_Line(self.transit, cut_station)
+          line = self.Draw_Line(self.transit[detector], cut_station)
           x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
           x_res        = x_exp[event] - space["x_pos"]
           y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
@@ -145,43 +154,23 @@ class ST_Alignment(object):
                                           cut_station)
 
       self.Move_Points(fit)
-#      if loop > 1:
-#        for det in chi_sq[loop]:
-#          print det, "_________________________________"
-#          for stat in chi_sq[loop][det]:
-#            print "%.4f" % chi_sq[loop-1][det][stat] , "    ", \
-#                  "%.4f" % chi_sq[loop][det][stat]
-                  
-      
+
     self.o_res.Write()
     self.o_prof.Write()
 
 #########################################################################################
   # 
   def Draw_Line(self, seeds, cut):
-    temp = {}
-    for dim in ["x", "y"]:
-      pos = dim+"_pos"
-      a1, a2, a3, a4, c1, c2 = 0, 0, 0, 0 ,0 ,0
-      for station in seeds:
-        try:
-          c1 += seeds[station][pos]*seeds[station]["z_pos"]
-          c2 += seeds[station][pos]
-          a1 += seeds[station]["z_pos"]**2
-          a2 += seeds[station]["z_pos"]
-          a4 += 1
-        except KeyError:
-          print "Fit error"
-          print "Station ", station
-          print seeds
-
-      a = np.matrix([[a1,a2],[a2,a4]])
-      b = np.matrix([[c1],[c2]])
-      x = np.linalg.solve(a,b)
-      m_dim = "m"+dim
-      b_dim = "b"+dim
-      temp[m_dim] = x[0]
-      temp[b_dim] = x[1]
+    print "Cutting away station ",cut
+    x_array = np.delete(self.spaces["upstream"]['x_pos'],cut,1)
+    y_array = np.delete(self.spaces["upstream"]['y_pos'],cut,1)
+#    print x_array
+#    X = np.vstack([x_array, np.ones((len(x_array),4))]).T
+#    m = np.linalg.lstsq(x_array, y_array)
+    print "Slope"
+    print m
+#    print "Intercept"
+#    print c
     return temp
 
 #########################################################################################

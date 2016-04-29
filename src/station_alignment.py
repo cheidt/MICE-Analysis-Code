@@ -7,7 +7,7 @@ import math as m
   # 
 class ST_Alignment(object):
   def __init__ (self):
-    print "INITALIZING ALIGNMENT"
+    _output.Message("INITALIZING ALIGNMENT", exc=True)
     self.o_res   = _output.Output("station_alignment")
     self.o_prof  = _output.Output("beam_profile")
     self.spaces  = {"upstream":{}, \
@@ -90,7 +90,6 @@ class ST_Alignment(object):
             temp[i] = (x_pos, y_pos, z_pos, 0, 0)
           except IndexError:
             use_event = False
-            print "Don't use event"
             continue
 
         if use_event:
@@ -98,8 +97,6 @@ class ST_Alignment(object):
             self.spaces[detector] = np.vstack((self.spaces[detector],temp))
           else:
             self.spaces[detector] = temp
-        else:
-          print "Not Using event"
 
 #########################################################################################
   # 
@@ -107,129 +104,106 @@ class ST_Alignment(object):
     self.transit = copy.deepcopy(self.spaces)
     chi_sq = {}
     loop = 0
-    print self.spaces["upstream"], "\n"
-#    x_array = self.spaces["upstream"]['x_pos']
-#    print x_array, "\n"
-#    x_trim = np.delete(x_array,1,1)
-#    print x_trim, "\n"
-#    print x_array
-#    print self.spaces["upstream"]
-#    temp.view(float,5)
-#    for i in x_array:
-#      print i
-      
-    while loop < 15:
-      _output.Message("Loop over data number ", loop, exc=True)
-      loop += 1
-      chi_sq[loop] = {"upstream":{},
-                      "downstream":{}}
-      fit = {}
-      for detector in self.spaces:
-        fit[detector] = {}
-        for cut_station in range(5):
-          x_exp, y_exp, res = {}, {}, {}
-          line = self.Draw_Line(self.transit[detector], cut_station)
-          x_exp[event] = float(line["mx"]*space["z_pos"]+line["bx"])
-          x_res        = x_exp[event] - space["x_pos"]
-          y_exp[event] = float(line["my"]*space["z_pos"]+line["by"])
-          y_res        = y_exp[event] - space["y_pos"]
-          res[event]   = (y_res**2 + x_res**2)**0.5
 
-          name  = "st_st_residual"
-          title = "Four Station Residual"
-          self.o_res.Fill(name, title, x_res, y_res, \
-                          500, -50 , 50, 500, -50 , 50, \
-                          detector=detector, station=cut_station, \
-                          iteration=loop)
-          name  = "st_st_profile"
-          title = "Beam Profile in Space Points"
-          self.o_prof.Fill(name, title, space["x_pos"], space["y_pos"], \
-                           500, -250 , 250, 500, -250 , 250, \
-                           detector=detector, station=cut_station, \
-                           iteration=loop)
+    while loop < 1:
+      loop += 1
+      _output.Message("Loop over data number ", loop, exc=True)
+      for detector in self.spaces:
+        for cut_station in range(5):
+          self.Draw_Line(self.transit[detector], cut_station)
+          self.Find_Coefficents(self.transit[detector],cut_station)
+      #print self.transit
+          #x_res        = x_exp[event] - space["x_pos"]
+          #y_res        = y_exp[event] - space["y_pos"]
+          #res[event]   = (y_res**2 + x_res**2)**0.5
+
+          #name  = "st_st_residual"
+          #title = "Four Station Residual"
+          #self.o_res.Fill(name, title, x_res, y_res, \
+          #                500, -50 , 50, 500, -50 , 50, \
+          #                detector=detector, station=cut_station, \
+          #                iteration=loop)
+          #name  = "st_st_profile"
+          #title = "Beam Profile in Space Points"
+          #self.o_prof.Fill(name, title, space["x_pos"], space["y_pos"], \
+          #                 500, -250 , 250, 500, -250 , 250, \
+          #                 detector=detector, station=cut_station, \
+          #                 iteration=loop)
 
         #chi_sq[loop][detector][cut_station] = self.Chi_Squared(res)
-        fit[detector][cut_station] = self.Find_Coefficents(\
-                                     self.transit[detector], x_exp, y_exp, \
-                                          cut_station)
+        #fit[detector][cut_station] = self.Find_Coefficents(\
+        #                             self.transit[detector], x_exp, y_exp, \
+        #                                  cut_station)
 
-      self.Move_Points(fit)
+      #self.Move_Points(fit)
 
-    self.o_res.Write()
-    self.o_prof.Write()
+    #self.o_res.Write()
+    #self.o_prof.Write()
 
 #########################################################################################
   # 
   def Draw_Line(self, seeds, cut):
-    print "Cutting away station ",cut
-    x_array = np.delete(self.spaces["upstream"]['x_pos'],cut,1)
-    y_array = np.delete(self.spaces["upstream"]['y_pos'],cut,1)
-#    print x_array
-#    X = np.vstack([x_array, np.ones((len(x_array),4))]).T
-#    m = np.linalg.lstsq(x_array, y_array)
-    print "Slope"
-    print m
-#    print "Intercept"
-#    print c
-    return temp
+    cut_lst = [0, 1, 2, 3, 4]
+    x_array = np.delete(seeds['x_pos'],cut,1)
+    y_array = np.delete(seeds['y_pos'],cut,1)
+    z_array = np.delete(seeds['z_pos'],cut,1)
+    cut_lst.pop(cut)
+    z_value = np.delete(seeds['z_pos'],cut_lst,1)
+
+    for i in range(len(x_array)):
+      Z = np.vstack([z_array[i], np.ones(len(z_array[i]))]).T
+      mx, cx = np.linalg.lstsq(Z, x_array[i])[0]
+      seeds[i][cut]["x_exp"] = z_value[i]*mx + cx
+      my, cy = np.linalg.lstsq(Z, y_array[i])[0]
+      seeds[i][cut]["y_exp"] = z_value[i]*my + cy
 
 #########################################################################################
   # 
-  def Find_Coefficents(self, spaces, x_exp, y_exp, station):
-    b11,b12,b13,b14 = 0,0,0,0
-    b21,b22,b23,b24 = 0,0,0,0
-    b31,b32,b33,b34 = 0,0,0,0
-    b41,b42,b43,b44 = 0,0,0,0
+
+
+#########################################################################################
+  # 
+  def Find_Coefficents(self, seeds, cut):
+    station = [0, 1, 2, 3, 4]
+    station.pop(cut)
+    x_value  = np.delete(seeds['x_pos'],station,1)
+    y_value  = np.delete(seeds['y_pos'],station,1)
+    z_value  = np.delete(seeds['z_pos'],station,1)
+    x_expect = np.delete(seeds['x_exp'],station,1) - x_value
+    x_expect = np.reshape(x_expect, len(x_expect))
+    y_expect = np.delete(seeds['y_exp'],station,1) - y_value
+    y_expect = np.reshape(y_expect, len(y_expect))
+
+    delete_list = []
+    for i in range(len(x_value)):
+      if x_expect[i] > 1:
+        delete_list.append(i)
+    x_e = np.delete(x_expect,delete_list,0)
+    y_v = np.delete(y_value,delete_list,0)
+    z_v = np.delete(z_value,delete_list,0)
+
+    delete_list = []
+    for i in range(len(y_value)):
+      if y_expect[i] > 1:
+        delete_list.append(i)
+    y_e = np.delete(y_expect,delete_list,0)
+    x_v = np.delete(x_value,delete_list,0)
+    z_v = np.delete(z_value,delete_list,0)
+
+
+    X = np.hstack([y_v, z_v, np.ones((len(z_v),1))])
+    Y = np.hstack([x_v, z_v, np.ones((len(z_v),1))])
+#    print x_expect
+#    print X
+    a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
+    a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
+
+    coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
+    print "Array\n",coeff, "\n"
     
-    c1,c2,c3,c4 = 0,0,0,0
-    d1,d2,d3,d4 = 0,0,0,0
-    e1,e2,e3,e4 = 0,0,0,0
-    
-    temp = {}
-    for event in spaces:
-      seed = spaces[event][station]
-      
-      b11 += seed["x_pos"]**2
-      b12 += seed["x_pos"] * seed["y_pos"]
-      b13 += seed["x_pos"] * seed["z_pos"]
-      b14 += seed["x_pos"]
-      b22 += seed["y_pos"]**2
-      b23 += seed["y_pos"] * seed["z_pos"]
-      b24 += seed["y_pos"]
-      b33 += seed["z_pos"]**2
-      b34 += seed["z_pos"]
-      b44 += 1
-
-      c1 += seed["x_pos"] * x_exp[event]
-      c2 += seed["y_pos"] * x_exp[event]
-      c3 += seed["z_pos"] * x_exp[event]
-      c4 += x_exp[event]
-
-      d1 += seed["x_pos"] * y_exp[event]
-      d2 += seed["y_pos"] * y_exp[event]
-      d3 += seed["z_pos"] * y_exp[event]
-      d4 += y_exp[event]
-
-      e1 += seed["x_pos"] * seed["z_pos"]
-      e2 += seed["y_pos"] * seed["z_pos"]
-      e3 += seed["z_pos"] * seed["z_pos"]
-      e4 += seed["z_pos"]
-
-    b    = np.matrix([[b11,b12,b13,b14],[b12,b22,b23,b24],\
-                      [b13,b23,b33,b34],[b14,b24,b34,b44]])
-    c    = np.matrix([[c1],[c2],[c3],[c4]])
-    d    = np.matrix([[d1],[d2],[d3],[d4]])
-    e    = np.matrix([[e1],[e2],[e3],[e4]])
-    row1 = np.linalg.solve(b,c)
-    row2 = np.linalg.solve(b,d)
-    row3 = np.linalg.solve(b,e)
-
-    temp = np.matrix([[row1.item(0),row1.item(1),row1.item(2),row1.item(3)], \
-                      [row2.item(0),row2.item(1),row2.item(2),row2.item(3)], \
-                      [row3.item(0),row3.item(1),row3.item(2),row3.item(3)], \
-                      [0,           0,           0,           1]])
-
-    return temp
+    test_array = np.array([a12, xt])
+#    for i in range(len(X)):
+#      print np.dot(test_array,X[i])
 
 #########################################################################################
   # 
@@ -254,9 +228,7 @@ class ST_Alignment(object):
         phi   =  fit[detector][station].item(1)
         psi   =  fit[detector][station].item(6)
         theta = -fit[detector][station].item(2)
-        
-#        print "Old: ", self.position[detector][station]["x"]
-#        print "Initial: ",x
+
         sx  = self.position[detector][station]["x"]     = \
               step * (x - self.position[detector][station]["x"]) + \
               self.position[detector][station]["x"]
@@ -275,18 +247,7 @@ class ST_Alignment(object):
         sth = self.position[detector][station]["theta"] = \
               (theta - self.position[detector][station]["theta"]) + \
               self.position[detector][station]["theta"]
-#        print "New: ", self.position[detector][station]["x"]
-#        print fit[detector][station],"\n"
-        
-#        step_fit = np.matrix([[m.cos(theta)*m.cos(phi), m.cos(theta)*m.sin(phi), \
-#                              -m.sin(theta), x], \
-#                              [m.sin(psi)*m.sin(theta)*m.cos(phi) - m.cos(psi)*m.sin(phi), \
-#                               m.sin(psi)*m.sin(theta)*m.sin(phi) + m.cos(psi)*m.cos(phi), \
-#                               m.cos(theta)*m.sin(psi), y], \
-#                              [m.cos(psi)*m.sin(theta)*m.cos(phi) + m.sin(psi)*m.sin(phi), \
-#                               m.cos(psi)*m.sin(theta)*m.sin(phi) - m.sin(psi)*m.cos(phi), \
-#                               m.cos(theta)*m.cos(psi), z], \
-#                              [0, 0, 0, 1]])        
+     
         step_fit = np.matrix([[m.cos(sth)*m.cos(sph), m.cos(sth)*m.sin(sph), \
                               -m.sin(sth), sx], \
                               [m.sin(sps)*m.sin(sth)*m.cos(sph) - m.cos(sps)*m.sin(sph), \
@@ -297,15 +258,11 @@ class ST_Alignment(object):
                                m.cos(sth)*m.cos(sps), sz], \
                               [0, 0, 0, 1]])
 
-#        step_fit = np.matrix([[1,phi,-theta,x],[-phi+psi*theta,1+psi*phi*theta,psi,y],[theta+psi*phi,-psi+theta*phi,1,z],[0,0,0,1]])
-#        print step_fit, "\n\n"
-
         for event in self.transit[detector]:
           point = self.transit[detector][event][station]
           tran = np.matrix([[point["x_pos"]],[point["y_pos"]], \
                             [point["z_pos"]],[1]])
           temp = step_fit*tran
-#          temp = fit[detector][station]*tran
 
           point["x_pos"] += step * (temp.item(0) - point["x_pos"])
           point["y_pos"] += step * (temp.item(1) - point["y_pos"])

@@ -102,6 +102,7 @@ class ST_Alignment(object):
   # 
   def Station_Alignment(self):
     self.transit = copy.deepcopy(self.spaces)
+    temp         = copy.deepcopy(self.spaces)
     chi_sq = {}
     loop = 0
 
@@ -110,8 +111,12 @@ class ST_Alignment(object):
       _output.Message("Loop over data number ", loop, exc=True)
       for detector in self.spaces:
         for cut_station in range(5):
-          self.Draw_Line(self.transit[detector], cut_station)
-          self.Find_Coefficents(self.transit[detector],cut_station)
+          delete_list = self.Draw_Line(temp[detector], cut_station)
+          temp[detector] = np.delete(temp[detector], delete_list, 0)
+        for cut_station in range (5):
+          print detector, " Tracker"
+          print "Station ", cut_station, "\n"
+          self.Find_Coefficents(temp[detector],cut_station)
       #print self.transit
           #x_res        = x_exp[event] - space["x_pos"]
           #y_res        = y_exp[event] - space["y_pos"]
@@ -144,6 +149,7 @@ class ST_Alignment(object):
   # 
   def Draw_Line(self, seeds, cut):
     cut_lst = [0, 1, 2, 3, 4]
+    delete_list = []
     x_array = np.delete(seeds['x_pos'],cut,1)
     y_array = np.delete(seeds['y_pos'],cut,1)
     z_array = np.delete(seeds['z_pos'],cut,1)
@@ -152,10 +158,15 @@ class ST_Alignment(object):
 
     for i in range(len(x_array)):
       Z = np.vstack([z_array[i], np.ones(len(z_array[i]))]).T
-      mx, cx = np.linalg.lstsq(Z, x_array[i])[0]
-      seeds[i][cut]["x_exp"] = z_value[i]*mx + cx
-      my, cy = np.linalg.lstsq(Z, y_array[i])[0]
-      seeds[i][cut]["y_exp"] = z_value[i]*my + cy
+      x_result = np.linalg.lstsq(Z, x_array[i])
+      seeds[i][cut]["x_exp"] = z_value[i]*x_result[0][0] + x_result[0][1]
+      y_result = np.linalg.lstsq(Z, y_array[i])
+      seeds[i][cut]["y_exp"] = z_value[i]*y_result[0][0] + y_result[0][1]
+
+      if x_result[1] > 1 or y_result[1] > 1:
+        delete_list.append(i)
+        
+    return delete_list
 
 #########################################################################################
   # 
@@ -170,40 +181,31 @@ class ST_Alignment(object):
     y_value  = np.delete(seeds['y_pos'],station,1)
     z_value  = np.delete(seeds['z_pos'],station,1)
     x_expect = np.delete(seeds['x_exp'],station,1) - x_value
-    x_expect = np.reshape(x_expect, len(x_expect))
     y_expect = np.delete(seeds['y_exp'],station,1) - y_value
-    y_expect = np.reshape(y_expect, len(y_expect))
 
-    delete_list = []
-    for i in range(len(x_value)):
-      if x_expect[i] > 1:
-        delete_list.append(i)
-    x_e = np.delete(x_expect,delete_list,0)
-    y_v = np.delete(y_value,delete_list,0)
-    z_v = np.delete(z_value,delete_list,0)
+    X = np.hstack([y_expect, z_value, np.ones((len(z_value),1))])
+    Y = np.hstack([x_expect, z_value, np.ones((len(z_value),1))])
 
-    delete_list = []
-    for i in range(len(y_value)):
-      if y_expect[i] > 1:
-        delete_list.append(i)
-    y_e = np.delete(y_expect,delete_list,0)
-    x_v = np.delete(x_value,delete_list,0)
-    z_v = np.delete(z_value,delete_list,0)
+    print "Number of Points - ", len(x_value)
 
-
-    X = np.hstack([y_v, z_v, np.ones((len(z_v),1))])
-    Y = np.hstack([x_v, z_v, np.ones((len(z_v),1))])
-#    print x_expect
-#    print X
+    print "Average Residual"
+    print "X - ", np.average(x_expect)
+    print "Y - ", np.average(y_expect), "\n"
+    
     a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
     a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
 
     coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
     print "Array\n",coeff, "\n"
-    
-    test_array = np.array([a12, xt])
-#    for i in range(len(X)):
-#      print np.dot(test_array,X[i])
+
+    for t in range(len(x_value)):
+      test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
+      print "Expected X value:   ", x_value[t]
+      print "Calculated X value: ", test_x
+
+      test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
+      print "Expected Y value:   ", y_value[t]
+      print "Calculated Y value: ", test_y
 
 #########################################################################################
   # 

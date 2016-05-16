@@ -1,18 +1,18 @@
 import os
 #########################################################################################
-  # Contains all the constants and predefined variables need for all 
+  # Contains all the constants and predefined variables need for all
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":10000,             # Maximum event to process to, negative for max
+"event_cut":1000,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
 
-"upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1 
+"upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1
 "upstream_Tmax":29.83,      # Maximum timing for TOF0 to TOF1
-"downstream_Tmin":28.04,    # Minimum timing for TOF1 to TOF2 
+"downstream_Tmin":28.04,    # Minimum timing for TOF1 to TOF2
 "downstream_Tmax":34.84,    # Maximum timing for TOF1 to TOF2
 
 
@@ -35,8 +35,8 @@ check_config = {
 
 
 # Maus data
-"file_name":"maus_output.root",
-"data_directory":"/vols/fets2/heidt/offline/analysis/7417_bad_geo/",
+"file_name":"07417_recon.root",
+"data_directory": '/home/chris/work/data/07417/',
 #"data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
 #"file_name":"maus_output_geo_123_geo_inverse.root",
 #"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
@@ -59,7 +59,7 @@ fill_config = {
 
 analysis_config = {
 "tk_data_req":14,          # Number of reconstructed track points with data
-"min_data":9,              # Bad data criteria for events with two tracks.   
+"min_data":9,              # Bad data criteria for events with two tracks.
 "p_cut":0.05,              # Lower limit for reconstructed track P-values
 "min_trip":3,
 "req_trip":5,

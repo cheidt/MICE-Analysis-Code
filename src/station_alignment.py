@@ -163,7 +163,7 @@ class ST_Alignment(object):
       y_result = np.linalg.lstsq(Z, y_array[i])
       seeds[i][cut]["y_exp"] = z_value[i]*y_result[0][0] + y_result[0][1]
 
-      if x_result[1] > 1 or y_result[1] > 1:
+      if x_result[1] > 3 or y_result[1] > 3:
         delete_list.append(i)
         
     return delete_list
@@ -186,26 +186,68 @@ class ST_Alignment(object):
     X = np.hstack([y_expect, z_value, np.ones((len(z_value),1))])
     Y = np.hstack([x_expect, z_value, np.ones((len(z_value),1))])
 
-    print "Number of Points - ", len(x_value)
-
+    print "Number of Points - ", len(x_value),"\n"
+    
+    print "Data used in linear fit"
+    print X
+    print x_expect,"\n"
+    
+    print "Number of dimensions in set"
+    print np.shape(X)
+    print np.shape(x_expect),"\n"
+    
+    print "First value of that set"
+    print np.expand_dims(X[0], 0)
+    print np.expand_dims(x_expect[0], 0), "\n"
+    
+    print "Number of dimensions in first value"
+    print np.shape(np.expand_dims(X[0], 0))
+    print np.shape(np.expand_dims(x_expect[0], 0)), "\n"
+    
     print "Average Residual"
     print "X - ", np.average(x_expect)
     print "Y - ", np.average(y_expect), "\n"
     
-    a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
-    a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
+    use_individual = 1
+    
+    if (use_individual == 1):
+      for t in range(len(X)):
+        print "Event -",t
+        
+        oneD_X  = np.expand_dims(X[t], 0)
+        oneD_Y  = np.expand_dims(X[t], 0)
+        oneD_xe = np.expand_dims(x_expect[t], 0)
+        oneD_ye = np.expand_dims(x_expect[t], 0)
+        
+        a12, a13, xt = np.linalg.lstsq(oneD_X, oneD_xe)[0]
+        a21, a23, yt = np.linalg.lstsq(oneD_Y, oneD_ye)[0]
 
-    coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
-    print "Array\n",coeff, "\n"
+        coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
+        print "Rotation Matrix\n",coeff, "\n"
 
-    for t in range(len(x_value)):
-      test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
-      print "Expected X value:   ", x_value[t]
-      print "Calculated X value: ", test_x
+        test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
+        print "Expected X value:   ", x_value[t]
+        print "Calculated X value: ", test_x
 
-      test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
-      print "Expected Y value:   ", y_value[t]
-      print "Calculated Y value: ", test_y
+        test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
+        print "Expected Y value:   ", y_value[t]
+        print "Calculated Y value: ", test_y, "\n"
+      
+    if (use_individual == 0):
+      a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
+      a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
+
+      coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
+      print "Rotation Matrix\n",coeff, "\n"
+      
+      for t in range(len(x_value)):
+        test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
+        print "Expected X value:   ", x_value[t]
+        print "Calculated X value: ", test_x
+
+        test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
+        print "Expected Y value:   ", y_value[t]
+        print "Calculated Y value: ", test_y
 
 #########################################################################################
   # 

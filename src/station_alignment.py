@@ -35,6 +35,7 @@ class ST_Alignment(object):
                                       "theta":0, "psi":0, "phi":0}, \
                                    5:{"x":0, "y":0, "z":0, \
                                       "theta":0, "psi":0, "phi":0}}}
+
 #########################################################################################
   # 
   def StS_Collect_Space_Points(self, tracks):
@@ -103,19 +104,20 @@ class ST_Alignment(object):
   def Station_Alignment(self):
     self.transit = copy.deepcopy(self.spaces)
     temp         = copy.deepcopy(self.spaces)
-    chi_sq = {}
     loop = 0
 
     while loop < 1:
       loop += 1
       _output.Message("Loop over data number ", loop, exc=True)
       for detector in self.spaces:
+        delete_list = self.Fiducial_Cut(temp[detector])
+        temp[detector] = np.delete(temp[detector], delete_list, 0)
         for cut_station in range(5):
           delete_list = self.Draw_Line(temp[detector], cut_station)
           temp[detector] = np.delete(temp[detector], delete_list, 0)
         for cut_station in range (5):
-          print detector, " Tracker"
-          print "Station ", cut_station, "\n"
+          print "\n", detector, " Tracker"
+          print "Station ", cut_station
           self.Find_Coefficents(temp[detector],cut_station)
       #print self.transit
           #x_res        = x_exp[event] - space["x_pos"]
@@ -146,7 +148,22 @@ class ST_Alignment(object):
     #self.o_prof.Write()
 
 #########################################################################################
-  # 
+  #  Cuts on a certain area within the trackers, requires all parts of the particle
+  #    path to pass within that area.
+  def Fiducial_Cut(self, seeds):
+    delete_list = []
+    distance = (seeds['x_pos']**2 + seeds['y_pos']**2)**0.5
+    for i in range(len(distance)):
+      for j in range(len(distance[i])):
+        if distance[i][j] < 100.0:
+          delete_list.append(i)
+          break
+    return delete_list
+
+
+#########################################################################################
+  #  Draws a line between any four space points and determines where in the fifth plane
+  #    we would expect to find the space point
   def Draw_Line(self, seeds, cut):
     cut_lst = [0, 1, 2, 3, 4]
     delete_list = []
@@ -169,11 +186,8 @@ class ST_Alignment(object):
     return delete_list
 
 #########################################################################################
-  # 
-
-
-#########################################################################################
-  # 
+  #  Takes expected and actual values and returns the rotation matrix that transforms
+  #    one to the other.
   def Find_Coefficents(self, seeds, cut):
     station = [0, 1, 2, 3, 4]
     station.pop(cut)
@@ -187,38 +201,31 @@ class ST_Alignment(object):
     Y = np.hstack([x_expect, z_value, np.ones((len(z_value),1))])
 
     print "Number of Points - ", len(x_value),"\n"
-    
-    print "Data used in linear fit"
-    print X
-    print x_expect,"\n"
-    
+
     print "Number of dimensions in set"
     print np.shape(X)
     print np.shape(x_expect),"\n"
-    
-    print "First value of that set"
-    print np.expand_dims(X[0], 0)
-    print np.expand_dims(x_expect[0], 0), "\n"
-    
-    print "Number of dimensions in first value"
-    print np.shape(np.expand_dims(X[0], 0))
-    print np.shape(np.expand_dims(x_expect[0], 0)), "\n"
-    
+
     print "Average Residual"
     print "X - ", np.average(x_expect)
     print "Y - ", np.average(y_expect), "\n"
-    
-    use_individual = 1
-    
+
+    use_individual = 0
+
     if (use_individual == 1):
+      print "Using Indiv"
       for t in range(len(X)):
         print "Event -",t
-        
+
         oneD_X  = np.expand_dims(X[t], 0)
         oneD_Y  = np.expand_dims(X[t], 0)
         oneD_xe = np.expand_dims(x_expect[t], 0)
         oneD_ye = np.expand_dims(x_expect[t], 0)
-        
+
+        print "Data points"
+        print oneD_X
+        print oneD_xe, "\n"
+
         a12, a13, xt = np.linalg.lstsq(oneD_X, oneD_xe)[0]
         a21, a23, yt = np.linalg.lstsq(oneD_Y, oneD_ye)[0]
 
@@ -234,20 +241,21 @@ class ST_Alignment(object):
         print "Calculated Y value: ", test_y, "\n"
       
     if (use_individual == 0):
+      print "Not using indiv"
       a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
       a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
 
       coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
       print "Rotation Matrix\n",coeff, "\n"
       
-      for t in range(len(x_value)):
-        test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
-        print "Expected X value:   ", x_value[t]
-        print "Calculated X value: ", test_x
+#      for t in range(len(x_value)):
+#        test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt
+#        print "Expected X value:   ", x_value[t]
+#        print "Calculated X value: ", test_x
 
-        test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
-        print "Expected Y value:   ", y_value[t]
-        print "Calculated Y value: ", test_y
+#        test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt
+#        print "Expected Y value:   ", y_value[t]
+#        print "Calculated Y value: ", test_y
 
 #########################################################################################
   # 

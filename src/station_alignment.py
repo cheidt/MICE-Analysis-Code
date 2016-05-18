@@ -73,20 +73,20 @@ class ST_Alignment(object):
 
       for station in tracks[detector][0]["seeds"][0][detector]:
         if not len(tracks[detector][0]["seeds"][0][detector][station]) == 1:
-          _output.Message("Phantom space point in ",detector," ",station, \
-                                                    exc=True)
+          _output.Message(detector, "Phantom space point in ", " ", station, \
+                          exc=True)
 
       for seeds in tracks[detector][0]["seeds"]:
-        temp = np.array([(0,0,0,0,0),(0,0,0,0,0),(0,0,0,0,0), \
-                         (0,0,0,0,0),(0,0,0,0,0)],
-                  dtype=[('x_pos','f4'),('y_pos','f4'),('z_pos','f4'), \
-                         ('x_exp','f4'),('y_exp','f4')])
+        temp = np.array([(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), \
+                         (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)],
+                  dtype=[('x_pos', 'f4'), ('y_pos', 'f4'), ('z_pos', 'f4'), \
+                         ('x_exp', 'f4'), ('y_exp', 'f4')])
         use_event = True
         for station in seeds[detector]:
           try:
-            x_pos   = seeds[detector][station][0]["x_glob_pos"]
-            y_pos   = seeds[detector][station][0]["y_glob_pos"]
-            z_pos   = seeds[detector][station][0]["z_glob_pos"]
+            x_pos   = seeds[detector][station][0]["x_pos"]
+            y_pos   = seeds[detector][station][0]["y_pos"]
+            z_pos   = seeds[detector][station][0]["z_pos"]
             i       = station - 1
             temp[i] = (x_pos, y_pos, z_pos, 0, 0)
           except IndexError:
@@ -98,6 +98,7 @@ class ST_Alignment(object):
             self.spaces[detector] = np.vstack((self.spaces[detector],temp))
           else:
             self.spaces[detector] = temp
+    pass
 
 #########################################################################################
   # 
@@ -113,12 +114,12 @@ class ST_Alignment(object):
         delete_list = self.Fiducial_Cut(temp[detector])
         temp[detector] = np.delete(temp[detector], delete_list, 0)
         for cut_station in range(5):
-          delete_list = self.Draw_Line(temp[detector], cut_station)
+          delete_list = self.Find_Expected_Values(temp[detector], cut_station)
           temp[detector] = np.delete(temp[detector], delete_list, 0)
         for cut_station in range (5):
           print "\n", detector, " Tracker"
           print "Station ", cut_station
-          self.Find_Coefficents(temp[detector],cut_station)
+          self.Find_Coefficents(temp[detector], cut_station)
       #print self.transit
           #x_res        = x_exp[event] - space["x_pos"]
           #y_res        = y_exp[event] - space["y_pos"]
@@ -146,6 +147,7 @@ class ST_Alignment(object):
 
     #self.o_res.Write()
     #self.o_prof.Write()
+    pass
 
 #########################################################################################
   #  Cuts on a certain area within the trackers, requires all parts of the particle
@@ -164,26 +166,51 @@ class ST_Alignment(object):
 #########################################################################################
   #  Draws a line between any four space points and determines where in the fifth plane
   #    we would expect to find the space point
-  def Draw_Line(self, seeds, cut):
-    cut_lst = [0, 1, 2, 3, 4]
+  def Find_Expected_Values(self, seeds, cut):
+    cut_list = [0, 1, 2, 3, 4]
+    cut_list.pop(cut)
     delete_list = []
-    x_array = np.delete(seeds['x_pos'],cut,1)
-    y_array = np.delete(seeds['y_pos'],cut,1)
-    z_array = np.delete(seeds['z_pos'],cut,1)
-    cut_lst.pop(cut)
-    z_value = np.delete(seeds['z_pos'],cut_lst,1)
+    x_array = np.delete(seeds['x_pos'], cut, 1)
+    y_array = np.delete(seeds['y_pos'], cut, 1)
+    z_array = np.delete(seeds['z_pos'], cut, 1)
+    x_value = np.delete(seeds['x_pos'], cut_list, 1)
+    y_value = np.delete(seeds['y_pos'], cut_list, 1)
+    z_value = np.delete(seeds['z_pos'], cut_list, 1)
+
+    print 'seeds'
+    print seeds, '\n'
+
+    print 'X Values'
+    print x_value, '\n'
+
+    print 'Second Try'
+    print seeds['x_pos'][np.arange(len(x_array))], '\n'
+    print seeds['x_pos'][np.arange(len(x_array))][cut], '\n'
 
     for i in range(len(x_array)):
       Z = np.vstack([z_array[i], np.ones(len(z_array[i]))]).T
       x_result = np.linalg.lstsq(Z, x_array[i])
-      seeds[i][cut]["x_exp"] = z_value[i]*x_result[0][0] + x_result[0][1]
       y_result = np.linalg.lstsq(Z, y_array[i])
-      seeds[i][cut]["y_exp"] = z_value[i]*y_result[0][0] + y_result[0][1]
+
+      seeds[i][cut]["x_exp"] = z_value[i] * x_result[0][0] + x_result[0][1]
+      seeds[i][cut]["y_exp"] = z_value[i] * y_result[0][0] + y_result[0][1]
 
       if x_result[1] > 3 or y_result[1] > 3:
         delete_list.append(i)
+
+
         
     return delete_list
+
+#########################################################################################
+  #  Fits a line to m, y, x to find z
+  def Find_Zee_Offset(self, seeds, cut):
+    if cut == 0:
+      next = 1
+    else:
+      next = cut - 1
+
+
 
 #########################################################################################
   #  Takes expected and actual values and returns the rotation matrix that transforms
@@ -250,9 +277,7 @@ class ST_Alignment(object):
       a21, a22, yt = np.linalg.lstsq(Y, y_expect)[0]
       #a31, a32, zt = np.linalg.lstsq(Z, x_value,1)))[0]
 
-      calc_a21 = -a23 * a13
-
-      coeff = np.array([[a11[0], a12, 0, xt], [a21, a22, 0, yt], [a31, a32, 0, zt]])
+      coeff = np.array([[a11[0], a12, 0, xt], [a21, a22, 0, yt]])
       print "Rotation Matrix\n",coeff, "\n"
       
 #      for t in range(len(x_value)):
@@ -264,8 +289,10 @@ class ST_Alignment(object):
 #        print "Expected Y value:   ", y_value[t]
 #        print "Calculated Y value: ", test_y
 
+    return 0
+
 #########################################################################################
-  # 
+  #  Test to determine if another loop needs to be made (Probably will be changed)
   def Chi_Squared(self, x):
     mean   = sum(x.values())/len(x)
     n      = len(x)

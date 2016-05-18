@@ -194,11 +194,12 @@ class ST_Alignment(object):
     x_value  = np.delete(seeds['x_pos'],station,1)
     y_value  = np.delete(seeds['y_pos'],station,1)
     z_value  = np.delete(seeds['z_pos'],station,1)
-    x_expect = np.delete(seeds['x_exp'],station,1) - x_value
-    y_expect = np.delete(seeds['y_exp'],station,1) - y_value
+    x_expect = np.delete(seeds['x_exp'],station,1) # - x_value
+    y_expect = np.delete(seeds['y_exp'],station,1) # - y_value
 
-    X = np.hstack([y_expect, z_value, np.ones((len(z_value),1))])
-    Y = np.hstack([x_expect, z_value, np.ones((len(z_value),1))])
+    X = np.hstack([x_value, y_value, np.ones((len(z_value),1))])
+    Y = np.hstack([x_value, y_value, np.ones((len(z_value),1))])
+    Z = np.hstack([y_value, np.ones((len(z_value),1))])
 
     print "Number of Points - ", len(x_value),"\n"
 
@@ -207,8 +208,8 @@ class ST_Alignment(object):
     print np.shape(x_expect),"\n"
 
     print "Average Residual"
-    print "X - ", np.average(x_expect)
-    print "Y - ", np.average(y_expect), "\n"
+    print "X - ", np.average(x_expect - x_value)
+    print "Y - ", np.average(y_expect - y_value), "\n"
 
     use_individual = 0
 
@@ -218,34 +219,40 @@ class ST_Alignment(object):
         print "Event -",t
 
         oneD_X  = np.expand_dims(X[t], 0)
-        oneD_Y  = np.expand_dims(X[t], 0)
+        oneD_Y  = np.expand_dims(Y[t], 0)
         oneD_xe = np.expand_dims(x_expect[t], 0)
-        oneD_ye = np.expand_dims(x_expect[t], 0)
+        oneD_ye = np.expand_dims(y_expect[t], 0)
 
         print "Data points"
+        print "X Values"
         print oneD_X
         print oneD_xe, "\n"
+        print "Y Values"
+        print oneD_Y
+        print oneD_ye, "\n"
 
-        a12, a13, xt = np.linalg.lstsq(oneD_X, oneD_xe)[0]
-        a21, a23, yt = np.linalg.lstsq(oneD_Y, oneD_ye)[0]
+        a12, xt = np.linalg.lstsq(oneD_X, oneD_xe)[0]
+        a21, yt = np.linalg.lstsq(oneD_Y, oneD_ye)[0]
 
-        coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
+        coeff = np.array([[1, a12, 0, xt], [a21, 1, 0, yt]])
         print "Rotation Matrix\n",coeff, "\n"
 
-        test_x = 1 * x_value[t] + a12 * y_value[t] + a13 * z_value[t] + xt 
+        test_x = 1 * x_value[t] + a12 * y_value[t] + 0 * z_value[t] + xt
         print "Expected X value:   ", x_value[t]
         print "Calculated X value: ", test_x
 
-        test_y = a21 * x_value[t] + 1 * y_value[t] + a23 * z_value[t] + yt 
+        test_y = a21 * x_value[t] + 1 * y_value[t] + 0 * z_value[t] + yt
         print "Expected Y value:   ", y_value[t]
         print "Calculated Y value: ", test_y, "\n"
       
     if (use_individual == 0):
-      print "Not using indiv"
-      a12, a13, xt = np.linalg.lstsq(X, x_expect)[0]
-      a21, a23, yt = np.linalg.lstsq(Y, y_expect)[0]
+      a11, a12, xt = np.linalg.lstsq(X, x_expect)[0]
+      a21, a22, yt = np.linalg.lstsq(Y, y_expect)[0]
+      #a31, a32, zt = np.linalg.lstsq(Z, x_value,1)))[0]
 
-      coeff = np.array([[1, a12, a13, xt], [a21, 1, a23, yt]])
+      calc_a21 = -a23 * a13
+
+      coeff = np.array([[a11[0], a12, 0, xt], [a21, a22, 0, yt], [a31, a32, 0, zt]])
       print "Rotation Matrix\n",coeff, "\n"
       
 #      for t in range(len(x_value)):

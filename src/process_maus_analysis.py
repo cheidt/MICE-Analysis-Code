@@ -13,13 +13,15 @@ import subprocess
 from config_maus_analysis import check_config as _config
 import fill_maus_analysis as _fill
 import analyize_maus_analysis as _analysis
-import station_alignment as _st_align
+#import station_alignment as _st_align
 import output_maus_analysis as _output
+import emittance as _emittance
 
 class Process:
   def __init__ (self):
-    self.st_align = _st_align.ST_Alignment()
+#    self.st_align = _st_align.ST_Alignment()
     self.analysis = _analysis.Analysis()
+    self.emittance = _emittance.Analysis()
     self.Read_Spills()
 
 #########################################################################################
@@ -55,6 +57,7 @@ class Process:
 
   # Fills the ROOT containers with data from the MAUS files
       self.Process_Event()
+    self.emittance.Emittance()
     self.Output()
 
 #########################################################################################
@@ -115,7 +118,8 @@ class Process:
   # Calls cuts and analysis routines.  Passes in data containers, event numbers
   #   and histograms to be filled.
   def Call_Analysis(self):
-    TOF_timing = {"upstream":False, "downstream":False}
+    TOF_timing = {"upstream":0, "downstream":0}
+    TOF_timing_bool = {"upstream":False, "downstream":False}
     if _config["ignore_Generate_Virtual_Map"] == False:
       self.Generate_Virtual_Map(self.data["virtual_points"], \
                                 self.data["tracker_tracks"])
@@ -142,7 +146,8 @@ class Process:
                                            self.data["TOF1_space_points"])
       if time > _config["upstream_Tmin"] and \
          time < _config["upstream_Tmax"]:
-        TOF_timing["upstream"] = True
+        TOF_timing_bool["upstream"] = True
+      TOF_timing["upstream"] = time
     time = -10000
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF1_space_points" in self.data and \
@@ -151,7 +156,8 @@ class Process:
                                            self.data["TOF2_space_points"])
       if time > _config["downstream_Tmin"] and \
          time < _config["downstream_Tmax"]:
-        TOF_timing["downstream"] = True
+        TOF_timing_bool["downstream"] = True
+      TOF_timing["downstream"] = time
 
     if _config["ignore_Station_Alignment"] == False and \
                "tracker_straight_pr" in self.data:
@@ -161,15 +167,31 @@ class Process:
                "tracker_tracks" in self.data and \
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data and \
-               TOF_timing["downstream"] == True:
+               TOF_timing_bool["downstream"] == True:
       self.analysis.TOF_Tk_Res(self.data["tracker_tracks"], \
-                                self.data["TOF1_space_points"],   \
-                                self.data["TOF2_space_points"])
+                               self.data["TOF1_space_points"],   \
+                               self.data["TOF2_space_points"])
+      
+    if _config["ignore_emittance"] == False and \
+               "tracker_tracks" in self.data and\
+               TOF_timing_bool["upstream"] == True:
+      self.emittance.Process(self.data["tracker_tracks"], TOF_timing)
+
+    if _config["ignore_MC_Study"] == False and \
+               "tracker_digits" in self.data:
+      self.analysis.MC_Study(self.data["tracker_digits"])
+      
+    if _config["ignore_Check_Channel_Overlap"] == False and \
+               "tracker_clusters" in self.data:
+      self.analysis.Check_Channel_Overlap(self.data["tracker_clusters"])
 
 #########################################################################################
   #
   def Output(self):
-    self.st_align.Station_Alignment()
+    if _config["ignore_Station_Alignment"] == False:
+      self.st_align.Station_Alignment()
+    if _config["ignore_emittance"] == False:
+      self.emittance.Write()
     self.analysis.Write()
     raw_input("Press Enter to Exit")
 

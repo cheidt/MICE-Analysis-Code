@@ -56,39 +56,54 @@ def Fill_from_Data(**kwargs):
 #########################################################################################
   # Fills tracker digits
 def Digits(digits):
-  container = {"upstream":{1:[], 2:[], 3:[], 4:[], 5:[]}, \
-             "downstream":{1:[], 2:[], 3:[], 4:[], 5:[]}}
+  container = {}
   for di in range(len(digits)):
     digit    = fill_digits(digits[di])
     tracker  = digit["tracker"]
     station  = digit["station"]
+    plane    = digit["plane"]
     detector = "upstream" if tracker == 0 else "downstream"
-    container[detector][station].append(digit)
+    if detector not in container:
+      container[detector] = {}
+    if station not in container[detector]:
+      container[detector][station] = {}
+    if plane not in container[detector][station]:
+      container[detector][station][plane] = []
+    container[detector][station][plane].append(digit)
   return container
 
 #########################################################################################
   # Fills tracker clusters
 def Clusters(clusters):
-  container = {"upstream":{1:[], 2:[], 3:[], 4:[], 5:[]}, \
-             "downstream":{1:[], 2:[], 3:[], 4:[], 5:[]}}
+  container = {}
   for cl in range(len(clusters)):
     cluster  = fill_clusters(clusters[cl])
     tracker  = cluster["tracker"]
     station  = cluster["station"]
+    plane    = cluster["plane"]
     detector = "upstream" if tracker == 0 else "downstream"
-    container[detector][station].append(cluster)
+    if detector not in container:
+      container[detector] = {}
+    if station not in container[detector]:
+      container[detector][station] = {}
+    if plane not in container[detector][station]:
+      container[detector][station][plane] = []
+    container[detector][station][plane].append(cluster)
   return container
 
 #########################################################################################
   # Collects information from tracker space points. 
 def Space_Points(spaces):
-  container = {"upstream":{1:[], 2:[], 3:[], 4:[], 5:[]}, \
-             "downstream":{1:[], 2:[], 3:[], 4:[], 5:[]}}
+  container = {}
   for sp in range(len(spaces)):
     space    = fill_space_points(spaces[sp])
     tracker  = space["tracker"]
     station  = space["station"]
     detector = "upstream" if tracker == 0 else "downstream"
+    if detector not in container:
+      container[detector] = {}
+    if station not in container[detector]:
+      container[detector][station] = []
     container[detector][station].append(space)
   return container
 
@@ -309,7 +324,9 @@ def fill_tracks(track):
     prtrk = fill_straight_pattern_recon(track.pr_track_pointer_straight())
     temp["prtrks"].append(prtrk)
   else:
-    prtrk = fill_helical_pattern_recon(track.pr_track_pointer_helical()[pr])
+    #print track.pr_track_pointer_helical()
+    #print "Number of helical tracks: ", track.pr_track_pointer_helical().size()
+    prtrk = fill_helical_pattern_recon(track.pr_track_pointer_helical())
     temp["prtrks"].append(prtrk)
   for tp in range(len(track.scifitrackpoints())):
     trpint                     = track.scifitrackpoints()[tp]

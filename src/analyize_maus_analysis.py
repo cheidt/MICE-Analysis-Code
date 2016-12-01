@@ -11,7 +11,9 @@ class Analysis(object):
   def __init__ (self):
     self.o_sp = _output.Output("space_point")
     self.o_TtT = _output.Output("TOF_to_TOF")
-    print "INITALIZING ANALYSIS"
+    self.o_MC  = _output.Output("MC_Study")
+    self.o_Mel = _output.Output("MC_Cluster_Study")
+    _output.Message("INITALIZING ANALYSIS", exc=True)
 
 #########################################################################################
   # Compares Truth position to reconstructed positions
@@ -218,9 +220,57 @@ class Analysis(object):
     title = "Tk Line to TOF SP Residuals Y"
     self.o_TtT.Fill(name, title, residual_y, 200, -400 , 400, \
                     detector=detector)
+#########################################################################################
+  #  For studying the MC noise, somehow.  Just a twinkle in my eye right now 
+  def MC_Study(self, digit):
+#    for event in range(len(digit)):
+#      if digit[event]["pe"] < 4.5:
+#        name  = "Digit_Noise_Ch"
+#        title = "Digit Noise in PE Channel"
+#        channel = digit[event]["channel"]
+#        tracker = digit[event]["tracker"]
+#        station = digit[event]["station"]
+#        detector = "upstream" if tracker == 0 else "downstream"
+#        pe    = digit[event]["pe"]
+#        plane = digit[event]["plane"]
+#        self.o_MC.Fill(name, title, pe, 250, -0, 4.5, \
+#                       detector=detector, station=station, plane=plane, channel=channel)
+    
+    for detector in digit:
+      for station in digit[detector]:
+        for plane in range(len(digit[detector][station])): 
+          for event in range(len(digit[detector][station][plane])):
+            if digit[detector][station][plane][event]["pe"] < 4.5:
+              name  = "Digit_Noise_Ch"
+              title = "Digit Noise in PE Channel"
+              channel = digit[detector][station][plane][event]["channel"]
+              pe    = digit[detector][station][plane][event]["pe"]
+              adc   = digit[detector][station][plane][event]["adc"]
+              self.o_MC.Fill(name, title, pe, 250, -0, 4.5, \
+                             detector=detector, station=station, plane=plane, channel=channel)
+            
+#########################################################################################
+  #  To test if MC is hitting multiple channels.  This is accomplished by checking for
+  #  clusters with xxx.5 channel values. 
+  def Check_Channel_Overlap(self, clusters):
+    for detector in clusters:
+      for station in clusters[detector]:
+        for plane in clusters[detector][station]:
+          for event in range(len(clusters[detector][station][plane])):
+            channel = clusters[detector][station][plane][event]["channel"]
+            if channel%1 == 0:
+              value = 1
+            else:
+              value = 0
+            name = "Bool_Channel_Int"
+            title = "Is the Channel Number an Int"
+            self.o_Mel.Fill(name, title, value, 4, -1, 2)
 
+            
 #########################################################################################
   # Writes analysis out to file by calling output class
   def Write(self):
-    self.o_TtT.Write()
-    self.o_sp.Write()
+    #self.o_TtT.Write()
+    #self.o_sp.Write()
+    #self.o_MC.Write()
+    self.o_Mel.Write()

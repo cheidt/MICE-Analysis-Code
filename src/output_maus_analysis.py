@@ -1,5 +1,7 @@
 import ROOT
 import os
+import json
+import pprint
 from config_maus_analysis import out_config as _config
 
 class Output(object):
@@ -14,9 +16,15 @@ class Output(object):
     if "station" in kwargs:
       title = title + " " + str(kwargs["station"])
       name  = name + "_" + str(kwargs["station"])
+    if "plane" in kwargs:
+      title = title + " " + str(kwargs["plane"])
+      name  = name + "_" + str(kwargs["plane"])
     if "iteration" in kwargs:
       title = title + " itr " + str(kwargs["iteration"])
       name  = name + "_" + str(kwargs["iteration"])
+    if "channel" in kwargs:
+      title = title + " " + str(kwargs["channel"])
+      name  = name + "_" + str(kwargs["channel"])
     if name not in self.hist_container:
       self.Initialize(name, title, args)
     else:
@@ -41,6 +49,9 @@ class Output(object):
     for name in self.hist_container:
       self.hist_container[name].Write()
     out_root.Close()
+
+def print_data(data):
+  pprint.pprint(data)
 
 def Message(*args, **kwargs):
   string = ""

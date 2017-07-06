@@ -27,7 +27,7 @@ class Analysis(object):
               x_res   = virtual["x_pos"] - space["x_glob_pos"]
               y_res   = virtual["y_pos"] - space["y_glob_pos"]
               name  = "SP_to_Virt"
-              title = "Residuals MC Truth to Space Point" 
+              title = "Residuals MC Truth to Space Point"
               self.o.Fill(name, title, x_res, y_res, \
                           500, -10, 10, 500, -10, 10, \
                           detector=detector, station=station)
@@ -94,10 +94,16 @@ class Analysis(object):
 
 #########################################################################################
   # Produces timing information between two TOFS
-  def TOF_Timing_Info(self, up_tof, down_tof):
+  def TOF_Timing_Info(self, up_tof, down_tof, detector):
     if len(up_tof) == 1 and \
        len(down_tof) == 1:
       timing = down_tof[0]["time"] - up_tof[0]["time"]
+      if detector == 'upstream':
+        name  = "Tof_Time"
+        title = "Upstream TOF Timing"
+        self.o_TtT.Fill(name, title, timing, \
+        500, 20 , 50, \
+        detector="upstream")
       return timing
     else:
       timing = -10000.
@@ -105,7 +111,7 @@ class Analysis(object):
 
 #########################################################################################
   # This method does some additional data cutting and then calls different
-  #   methods to determine the residuals of TOF to Tracker reconstruction. 
+  #   methods to determine the residuals of TOF to Tracker reconstruction.
   def TOF_Tk_Res(self, tracks, tof1, tof2):
     for detector in tracks:
 
@@ -197,7 +203,7 @@ class Analysis(object):
 
 #########################################################################################
   # Uses straight PR line and traces where line crosses either TOF1 or TOF2
-  #   x/y values at the point are found and residuals with TOF space point 
+  #   x/y values at the point are found and residuals with TOF space point
   #   calculated.
   def Tracker_to_TOF_Res(self, track, tof, detector):
     exp_x      = track["m_x_global"]*tof[0]["z_pos"]+track["x_0_global"]
@@ -221,7 +227,7 @@ class Analysis(object):
     self.o_TtT.Fill(name, title, residual_y, 200, -400 , 400, \
                     detector=detector)
 #########################################################################################
-  #  For studying the MC noise, somehow.  Just a twinkle in my eye right now 
+  #  For studying the MC noise, somehow.  Just a twinkle in my eye right now
   def MC_Study(self, digit):
 #    for event in range(len(digit)):
 #      if digit[event]["pe"] < 4.5:
@@ -235,10 +241,10 @@ class Analysis(object):
 #        plane = digit[event]["plane"]
 #        self.o_MC.Fill(name, title, pe, 250, -0, 4.5, \
 #                       detector=detector, station=station, plane=plane, channel=channel)
-    
+
     for detector in digit:
       for station in digit[detector]:
-        for plane in range(len(digit[detector][station])): 
+        for plane in range(len(digit[detector][station])):
           for event in range(len(digit[detector][station][plane])):
             if digit[detector][station][plane][event]["pe"] < 4.5:
               name  = "Digit_Noise_Ch"
@@ -248,10 +254,10 @@ class Analysis(object):
               adc   = digit[detector][station][plane][event]["adc"]
               self.o_MC.Fill(name, title, pe, 250, -0, 4.5, \
                              detector=detector, station=station, plane=plane, channel=channel)
-            
+
 #########################################################################################
   #  To test if MC is hitting multiple channels.  This is accomplished by checking for
-  #  clusters with xxx.5 channel values. 
+  #  clusters with xxx.5 channel values.
   def Check_Channel_Overlap(self, clusters):
     for detector in clusters:
       for station in clusters[detector]:
@@ -266,11 +272,13 @@ class Analysis(object):
             title = "Is the Channel Number an Int"
             self.o_Mel.Fill(name, title, value, 4, -1, 2)
 
-            
+
 #########################################################################################
   # Writes analysis out to file by calling output class
   def Write(self):
+    #self.o_TtT.Fit()
+    #self.o_TtT.Gaus_Fit(23, 27)
     #self.o_TtT.Write()
-    #self.o_sp.Write()
+    self.o_sp.Write()
     #self.o_MC.Write()
     self.o_Mel.Write()

@@ -4,24 +4,24 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":20,             # Maximum event to process to, negative for max
+"event_cut":4000,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
-"event_out":500,           # How often to output event number
+"event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
 
 #"upstream_Tmin":26.65,      # Minimum timing for TOF0 to TOF1
 #"upstream_Tmax":29.83,      # Maximum timing for TOF0 to TOF1
-"upstream_Tmin":26.0,      # Minimum timing for TOF0 to TOF1
-"upstream_Tmax":36.0,      # Maximum timing for TOF0 to TOF1
+"upstream_Tmin":20.0,      # Minimum timing for TOF0 to TOF1
+"upstream_Tmax":60.0,      # Maximum timing for TOF0 to TOF1
 #"downstream_Tmin":26.04,    # Minimum timing for TOF1 to TOF2
 #"downstream_Tmax":34.84,    # Maximum timing for TOF1 to TOF2
-"downstream_Tmin":26.0,    # Minimum timing for TOF1 to TOF2
-"downstream_Tmax":36.0,    # Maximum timing for TOF1 to TOF2
+"downstream_Tmin":20.0,    # Minimum timing for TOF1 to TOF2
+"downstream_Tmax":60.0,    # Maximum timing for TOF1 to TOF2
 
 # Analysis functions, turns functions On(False)/Off(True)
 "ignore_SP_to_Virt":             True,
-"ignore_SP_Fill_ROOT":           True,
+"ignore_SP_Fill_ROOT":           False,
 "ignore_Virt_Fill_ROOT":         True,
 "ignore_TOF_Timing_Info":        False,
 "ignore_Generate_Virtual_Map":   True,
@@ -30,6 +30,7 @@ check_config = {
 "ignore_MC_Study":               True,
 "ignore_Check_Channel_Overlap":  True,
 "ignore_emittance":              False,
+"ignore_Cut_Collection":         False,
 
 
 # Counters
@@ -41,11 +42,15 @@ check_config = {
 
 
 # Maus data
-"file_name":"07469_recon.root",
-"data_directory": '/home/chris/work/data/07469/',
+#"file_name":["08873_recon.root", "08874_recon.root", "08875_recon.root", "08877_recon.root", \
+#             "08878_recon.root", "08879_recon.root", "08880_recon.root", "08881_recon.root", \
+#             "08882_recon.root"],
+#"data_directory": '/media/chris/Research/data/6-240/',
 #"data_directory": '/home/chris/work/simulation/simple_beam/',
-#"data_directory":"/vols/fets2/heidt/offline/analysis/7417/",
-#"file_name":"maus_output_geo_123_geo_inverse.root",
+"data_directory": '/media/chris/Research/data/MAUS-2.7.0/6-240/',
+"file_name": ["08873_recon.root", "08874_recon.root", "08875_recon.root"], #, \
+#              "08877_recon.root", "08878_recon.root", "08879_recon.root", \
+#              "08880_recon.root", "08881_recon.root", "08882_recon.root"],
 #"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 "log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
 }
@@ -74,11 +79,20 @@ analysis_config = {
 
 out_config = {
 "output_dir":os.environ['ANALYSIS_DIR']+"/output/",
-"output_file":"_output_emittance.root",
+"output_file":"_output_140_Diff0_lattice1_5_LiH.root",
 "log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
 "verbose":False,
 }
 
 emittance_config = {
 "cut_list":{"Diff_Scrap":True}
+}
+
+cut_config = {
+"c_mu": 51240,
+"c_pi": 60150,
+"mu_mu": 27.24,
+"mu_pi": 28.56,
+"sigma_mu": 0.1547,
+"sigma_pi": 0.2045
 }

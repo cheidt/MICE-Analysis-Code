@@ -16,55 +16,76 @@ import analyize_maus_analysis as _analysis
 #import station_alignment as _st_align
 import output_maus_analysis as _output
 import emittance as _emittance
+import cut_collection as _cut
 
 class Process:
   def __init__ (self):
 #    self.st_align = _st_align.ST_Alignment()
-    self.analysis = _analysis.Analysis()
+    self.analysis  = _analysis.Analysis()
     self.emittance = _emittance.Analysis()
+    self.cuts      = _cut.Cuts()
     self.Read_Spills()
 
 #########################################################################################
   # Reads MICE spill data
   def Read_Spills(self):
+    # Initialize Log File
     _output.Message("INITALIZING LOG FILE: ",_config["log_file"])
     clear_log = open(_config["log_file"],"w")
     clear_log.close()
     file_in = self.Load_file()
-    _output.Message("READING MAUS FILE: ", file_in, exc=True)
-    root_file = ROOT.TFile(file_in, "READ") 
-  # Checks spill/event is good data
-    data = ROOT.MAUS.Data()
-    tree = root_file.Get("Spill")
-    if not tree:
-      return
-    tree.SetBranchAddress("data", data)
-    event_cut = _config["event_cut"]
-    min_event = _config["min_event"]
-    if event_cut > tree.GetEntries() or event_cut <= 0:
-      event_cut = tree.GetEntries()
-    for i in range(min_event, event_cut):
-      if (i % _config["event_out"] == 0):
-        _output.Message("Filling event: ", i, "/", event_cut, exc=True)
-      tree.GetEntry(i)
-      self.spill = data.GetSpill()
-      if not self.spill.GetDaqEventType() == "physics_event":
-        continue
-      if self.spill.GetReconEvents().size() == 0 and \
-         self.spill.GetMCEvents().size() == 0:
-        _output.Message("No data in event")
-        continue
+    output_count = 0
+    for file in file_in:
+      base = output_count
+      _output.Message("READING MAUS FILE: ", file, exc=True)
+      # Call in root file and check data is available
+      root_file = ROOT.TFile(file, "READ")
+      data = ROOT.MAUS.Data()
+      tree = root_file.Get("Spill")
+      if not tree:
+        return
+      tree.SetBranchAddress("data", data)
+      # Sets number of events to read and which event to start at in data
+      event_cut = _config["event_cut"]
+      min_event = _config["min_event"]
+      if event_cut > tree.GetEntries() or event_cut <= 0:
+        event_cut = tree.GetEntries()
+      for i in range(min_event, event_cut):
+        output_count = i + base
+        output_cut = event_cut + base
+        if (output_count % _config["event_out"] == 0):
+          _output.Message("Filling event: ", output_count, "/", output_cut, exc=True)
+        tree.GetEntry(i)
+        self.spill = data.GetSpill()
+        if not self.spill.GetDaqEventType() == "physics_event":
+          continue
+        if self.spill.GetReconEvents().size() == 0 and \
+                        self.spill.GetMCEvents().size() == 0:
+          _output.Message("No data in event")
+          continue
 
-  # Fills the ROOT containers with data from the MAUS files
-      self.Process_Event()
-    self.emittance.Emittance()
+          # Fills the ROOT containers with data from the MAUS files
+        self.Process_Event()
+    if _config["ignore_emittance"] == False:
+      count = self.cuts.Out_Count()
+      print "\nTotal Number of Events / Passed"
+      print count["Total"], " / ", count["Pass"]
+      print "Total Number of Muon Events / Passed"
+      print count["MTot"], " / ", count["MPass"]
+      print "Total Number of Pion Events / Passed"
+      print count["PTot"], " / ", count["PPass"]
+      print "Total Number of Electron Events / Passed"
+      print count["ETot"], " / ", count["EPass"]
+      print "Total Number of Unknown Events / Passed"
+      print count["UTot"], " / ", count["UPass"], "\n"
+      self.emittance.Emittance()
     self.Output()
 
 #########################################################################################
-  # Reads a single MICE event and sets up all the contianers that will be needed
-  #   to store the data for that event. Calls functions to read each type of 
-  #   MICE data to fill those contianers. Finally calls a function to start 
-  #   analysis of the event using collected data and flags.  
+  # Reads a single MICE event and sets up all the containers that will be needed
+  #   to store the data for that event. Calls functions to read each type of
+  #   MICE data to fill those containers. Finally calls a function to start
+  #   analysis of the event using collected data and flags.
   def Process_Event(self):
     if not self.spill.GetMCEvents().size() == 0:
       for rc in range(self.spill.GetMCEvents().size()):
@@ -120,6 +141,10 @@ class Process:
   def Call_Analysis(self):
     TOF_timing = {"upstream":0, "downstream":0}
     TOF_timing_bool = {"upstream":False, "downstream":False}
+
+    if _config["ignore_Cut_Collection"] == False:
+      cut_list = self.cuts.Process_Cuts(self.data)
+
     if _config["ignore_Generate_Virtual_Map"] == False:
       self.Generate_Virtual_Map(self.data["virtual_points"], \
                                 self.data["tracker_tracks"])
@@ -130,20 +155,23 @@ class Process:
       self.analysis.SP_to_Virt(self.data["virtual_points"], \
                                self.data["tracker_space_points"])
 
+
     if _config["ignore_SP_Fill_ROOT"] == False and \
                "tracker_space_points" in self.data:
       self.analysis.SP_Fill_ROOT(self.data["tracker_space_points"])
 
+
     if _config["ignore_Virt_Fill_ROOT"] == False and \
                "virtual_points" in self.data:
       self.analysis.Virt_Fill_ROOT(self.data["virtual_points"])
+
 
     time = -10000
     if _config["ignore_TOF_Timing_Info"] == False and \
                "TOF0_space_points" in self.data and \
                "TOF1_space_points" in self.data:
       time = self.analysis.TOF_Timing_Info(self.data["TOF0_space_points"], \
-                                           self.data["TOF1_space_points"])
+                                           self.data["TOF1_space_points"], 'upstream')
       if time > _config["upstream_Tmin"] and \
          time < _config["upstream_Tmax"]:
         TOF_timing_bool["upstream"] = True
@@ -153,15 +181,17 @@ class Process:
                "TOF1_space_points" in self.data and \
                "TOF2_space_points" in self.data:
       time = self.analysis.TOF_Timing_Info(self.data["TOF1_space_points"], \
-                                           self.data["TOF2_space_points"])
+                                           self.data["TOF2_space_points"], 'downstream')
       if time > _config["downstream_Tmin"] and \
          time < _config["downstream_Tmax"]:
         TOF_timing_bool["downstream"] = True
       TOF_timing["downstream"] = time
 
+
     if _config["ignore_Station_Alignment"] == False and \
                "tracker_straight_pr" in self.data:
       self.st_align.StS_Collect_Space_Points(self.data["tracker_straight_pr"])
+
 
     if _config["ignore_TOF_Tkr_Res"]  == False and \
                "tracker_tracks" in self.data and \
@@ -171,16 +201,20 @@ class Process:
       self.analysis.TOF_Tk_Res(self.data["tracker_tracks"], \
                                self.data["TOF1_space_points"],   \
                                self.data["TOF2_space_points"])
-      
+
+
     if _config["ignore_emittance"] == False and \
-               "tracker_tracks" in self.data and\
-               TOF_timing_bool["upstream"] == True:
-      self.emittance.Process(self.data["tracker_tracks"], TOF_timing)
+       cut_list["UTracks"][0] == True and \
+       cut_list["DTracks"][0] == True and \
+       cut_list["UTracks"][0] == True and \
+       cut_list["DTracks"][0] == True:
+      self.emittance.Process(self.data["tracker_tracks"], cut_list)
 
     if _config["ignore_MC_Study"] == False and \
                "tracker_digits" in self.data:
       self.analysis.MC_Study(self.data["tracker_digits"])
-      
+
+
     if _config["ignore_Check_Channel_Overlap"] == False and \
                "tracker_clusters" in self.data:
       self.analysis.Check_Channel_Overlap(self.data["tracker_clusters"])
@@ -192,15 +226,18 @@ class Process:
       self.st_align.Station_Alignment()
     if _config["ignore_emittance"] == False:
       self.emittance.Write()
+      self.cuts.Write()
     self.analysis.Write()
     raw_input("Press Enter to Exit")
 
 #########################################################################################
   # Searches predefined data directory to find specified processed MAUS file.
   def Load_file(self):
+    file_in = []
     for input_file in listdir(_config["data_directory"]):
-      if _config["file_name"] in input_file and ".root" in input_file:
-        file_in = _config["data_directory"] + input_file
+      for file_name in _config["file_name"]:
+        if file_name in input_file and ".root" in file_name:
+          file_in.append(_config["data_directory"] + input_file)
     return file_in
 
 #########################################################################################

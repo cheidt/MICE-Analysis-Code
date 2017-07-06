@@ -46,6 +46,9 @@ def Fill_from_Data(**kwargs):
       results["TOF2_space_points"]    = TOF(recon.GetTOFEvent().\
                                                   GetTOFEventSpacePoint().\
                                                   GetTOF2SpacePointArray())
+    if not len(recon.GetEMREvent().GetEMREventTrackArray()) == 0:
+      results["EMR_tracks"]           = EMR(recon.GetEMREvent().GetEMREventTrackArray())
+
   if "mc" in kwargs:
     mc = kwargs["mc"]
     if not len(mc.GetVirtualHits()) == 0:
@@ -92,7 +95,7 @@ def Clusters(clusters):
   return container
 
 #########################################################################################
-  # Collects information from tracker space points. 
+  # Collects information from tracker space points.
 def Space_Points(spaces):
   container = {}
   for sp in range(len(spaces)):
@@ -130,7 +133,7 @@ def Helical_Pattern_Recon(prtrks):
   return container
 
 #########################################################################################
-  # Collects information from track points and tracks.  
+  # Collects information from track points and tracks.
 def Tracks(tracks):
   container = {"upstream":[], "downstream":[]}
   for tk in range(len(tracks)):
@@ -147,6 +150,15 @@ def TOF(tofpts):
   for tf in range(len(tofpts)):
     tofpt = fill_tof(tofpts[tf])
     container.append(tofpt)
+  return container
+
+#########################################################################################
+  # Collects information from EMR Tracks.
+def EMR(emr_tracks):
+  container = []
+  for et in range(len(emr_tracks)):
+    emr_track = fill_emr_track(emr_tracks[et])
+    container.append(emr_track)
   return container
 
 #########################################################################################
@@ -386,4 +398,36 @@ def fill_virtual_hits(virtual):
     temp["station"]  = virt_map[temp["station_id"]][1]
     temp["plane"]    = virt_map[temp["station_id"]][2]
     temp["detector"] = "upstream" if temp["tracker"] == 0 else "downstream"
+  return temp
+
+def fill_emr_track (emr):
+  temp = {}
+  temp["mcharge_ratio"] = emr.GetChargeRatioMA()
+  temp["scharge_ratio"] = emr.GetChargeRatioSA()
+  temp["mden_ratio"]    = emr.GetPlaneDensityMA()
+  temp["sden_ratio"]    = emr.GetPlaneDensitySA()
+  temp["time"]          = emr.GetTime()
+  temp["type"]          = emr.GetType()
+  temp["mom"]           = emr.GetEMRTrack().GetMomentum()
+  temp["e_mom"]         = emr.GetEMRTrack().GetMomentumError()
+  temp["range"]         = emr.GetEMRTrack().GetRange()
+  temp["e_range"]       = emr.GetEMRTrack().GetRangeError()
+  temp["chi2"]          = emr.GetEMRTrack().GetChi2()
+  temp["azimuth"]       = emr.GetEMRTrack().GetAzimuth()
+  temp["e_azimuth"]     = emr.GetEMRTrack().GetAzimuthError()
+  temp["polar"]         = emr.GetEMRTrack().GetPolar()
+  temp["e_polar"]       = emr.GetEMRTrack().GetPolarError()
+  temp["origin"]        = emr.GetEMRTrack().GetOrigin()
+  temp["e_origin"]      = emr.GetEMRTrack().GetOriginErrors()
+  temp["space_points"]  = []
+  for sp in range(len(emr.GetEMRSpacePointArray())):
+    EMR_space = emr.GetEMRSpacePointArray()[sp]
+    temp2             = {}
+    temp2["x_pos"]    = EMR_space.GetPosition().x()
+    temp2["y_pos"]    = EMR_space.GetPosition().y()
+    temp2["z_pos"]    = EMR_space.GetPosition().z()
+    temp2["time"]     = EMR_space.GetDeltaT()
+    temp2["m_charge"] = EMR_space.GetChargeMA()
+    temp2["s_charge"] = EMR_space.GetChargeSA()
+    temp["space_points"].append(temp2)
   return temp

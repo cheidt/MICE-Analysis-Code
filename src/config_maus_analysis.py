@@ -89,10 +89,25 @@ emittance_config = {
 }
 
 cut_config = {
-"c_mu": 51240,
-"c_pi": 60150,
-"mu_mu": 27.24,
-"mu_pi": 28.56,
-"sigma_mu": 0.1547,
-"sigma_pi": 0.2045
+"U_c_mu": 51240,
+"U_c_pi": 60150,
+"U_c_el": 571,
+"U_mu_mu": 27.24,
+"U_mu_pi": 28.56,
+"U_mu_el": 25.38,
+"U_sigma_mu": 0.1547,
+"U_sigma_pi": 0.2045,
+"U_sigma_el": 0.1083,
+
+"D_c_mu": 10295,
+"D_c_pi": 3414,
+"D_c_el": 102,
+"D_mu_mu": 30.47,
+"D_mu_pi": 32.41,
+"D_mu_el": 28.11,
+"D_sigma_mu": 0.3422,
+"D_sigma_pi": 0.6094,
+"D_sigma_el": 0.4345,
+
+"particle_selection_ratio": 0.8,
 }

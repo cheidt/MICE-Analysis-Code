@@ -85,6 +85,7 @@ class Analysis(object):
       cov    = np.cov(data)
       x_cov  = np.cov(x_data)
       y_cov  = np.cov(y_data)
+      print detector
       print "\nX Y Covariance:"
       print cov, "\n"
       emit   = sum(self.factor[detector])/len(self.factor[detector]) * abs(float(np.linalg.det(cov)))**(1./4.)

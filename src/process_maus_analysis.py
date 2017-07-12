@@ -71,13 +71,13 @@ class Process:
       print "\nTotal Number of Events / Passed"
       print count["Total"], " / ", count["Pass"]
       print "Total Number of Muon Events / Passed"
-      print count["MTot"], " / ", count["MPass"]
+      print count["UMTot"], " / ", count["MPass"]
       print "Total Number of Pion Events / Passed"
-      print count["PTot"], " / ", count["PPass"]
+      print count["UPTot"], " / ", count["PPass"]
       print "Total Number of Electron Events / Passed"
-      print count["ETot"], " / ", count["EPass"]
+      print count["UETot"], " / ", count["EPass"]
       print "Total Number of Unknown Events / Passed"
-      print count["UTot"], " / ", count["UPass"], "\n"
+      print count["UUTot"], " / ", count["UPass"], "\n"
       self.emittance.Emittance()
     self.Output()
 

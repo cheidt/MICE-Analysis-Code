@@ -37,6 +37,18 @@ class Output(object):
       else:
         self.hist_container[name].Fill(args[0], w)
 
+  def Graph(self, name, title, *args, **kwargs):
+    if name not in self.hist_container:
+      self.hist_container[name] = ROOT.TGraph()
+      self.hist_container[name].SetName(name)
+      self.hist_container[name].SetTitle(title)
+      self.hist_container[name].SetMarkerStyle(3)
+      self.hist_container[name].SetLineColor(0)
+      self.hist_container[name].SetLineColorAlpha(0, 1.0)
+      if "color" in kwargs:
+        self.hist_container[name].SetMarkerColor(kwargs["color"])
+    self.hist_container[name].SetPoint(self.hist_container[name].GetN(), args[0], args[1])
+
   def Initialize(self, name, title, args):
     if len(args) == 8:
       self.hist_container[name] = ROOT.TH2D(name, title, args[2], args[3], \
@@ -47,6 +59,12 @@ class Output(object):
       self.hist_container[name] = ROOT.TH1D(name, title,args[1], args[2], \
                                                         args[3])
       self.hist_container[name].SetDirectory(0)
+
+  def Add_Graphs(self, name, title, *args):
+    if name not in self.hist_container:
+      self.hist_container[name] = ROOT.TMultiGraph(name, title)
+    for graph in args:
+      self.hist_container[name].Add(self.hist_container[graph])
 
   def Write(self):
     file_name = _config["output_dir"] + self.name + _config["output_file"]

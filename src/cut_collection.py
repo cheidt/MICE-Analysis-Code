@@ -19,6 +19,8 @@ class Cuts(object):
     # self.o_time.Gaus_Fit(27.0, 29.0, "DTime")
     # self.o_time.Gaus_Fit(29.0, 31.5, "DTime")
     # self.o_time.Gaus_Fit(31.5, 34.0, "DTime")
+    self.o_emr.Add_Graphs("Chi2_Graph", "EMR Chi2", "Graph_EMR_Entire_XY_Ch2_muon", \
+                           "Graph_EMR_Entire_XY_Ch2_pion", "Graph_EMR_Entire_XY_Ch2_electron")
     self.o_time.Write()
     self.o_emr.Write()
     self.o_other.Write()
@@ -85,12 +87,12 @@ class Cuts(object):
 
     if pass_cut["TOF1"][0] and pass_cut["TOF2"][0]:
       pass_cut["DTOF_Time"] = self.TOF_Timing_Cut(TOF1Time, TOF2Time)
-      if pass_cut["Only_One_DTOF"] and abs(pass_cut["DTOF_Time"][1][0] - 27.5) < 7.5:
-        tof_time = pass_cut["DTOF_Time"][1][0]
-        # print tof_time
-        mu = _config["D_c_mu"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_mu"]) / _config["D_sigma_mu"]) ** 2)
-        pi = _config["D_c_pi"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_pi"]) / _config["D_sigma_pi"]) ** 2)
-        el = _config["D_c_el"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_el"]) / _config["D_sigma_el"]) ** 2)
+      tof_time = pass_cut["DTOF_Time"][1][0]
+      # print tof_time
+      mu = _config["D_c_mu"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_mu"]) / _config["D_sigma_mu"]) ** 2)
+      pi = _config["D_c_pi"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_pi"]) / _config["D_sigma_pi"]) ** 2)
+      el = _config["D_c_el"] * math.e ** (-0.5 * ((tof_time - _config["D_mu_el"]) / _config["D_sigma_el"]) ** 2)
+      if mu + pi + el > 0.0001:
         pass_cut["DTOF_Time"][2] = mu / (mu + pi + el)
         Dpion_ratio = pi / (mu + pi + el)
         Delec_ratio = el / (mu + pi + el)
@@ -108,31 +110,34 @@ class Cuts(object):
 
     if pass_cut["TOF0"][0] and pass_cut["TOF1"][0]:
       pass_cut["UTOF_Time"] = self.TOF_Timing_Cut(TOF0Time, TOF1Time)
-      if pass_cut["Only_One_UTOF"] and abs(pass_cut["UTOF_Time"][1][0] - 27.5) < 7.5:
-        tof_time = pass_cut["UTOF_Time"][1][0]
-        # print tof_time
-        mu = _config["U_c_mu"] * math.e**(-0.5 * ((tof_time - _config["U_mu_mu"]) / _config["U_sigma_mu"])**2)
-        pi = _config["U_c_pi"] * math.e**(-0.5 * ((tof_time - _config["U_mu_pi"]) / _config["U_sigma_pi"])**2)
-        el = _config["U_c_el"] * math.e**(-0.5 * ((tof_time - _config["U_mu_el"]) / _config["U_sigma_el"])**2)
-        # print mu, pi, el
-        pass_cut["UTOF_Time"][2] = mu / (mu + pi + el)
+      tof_time = pass_cut["UTOF_Time"][1][0]
+      # print tof_time
+      mu = _config["U_c_mu"] * math.e**(-0.5 * ((tof_time - _config["U_mu_mu"]) / _config["U_sigma_mu"])**2)
+      pi = _config["U_c_pi"] * math.e**(-0.5 * ((tof_time - _config["U_mu_pi"]) / _config["U_sigma_pi"])**2)
+      el = _config["U_c_el"] * math.e**(-0.5 * ((tof_time - _config["U_mu_el"]) / _config["U_sigma_el"])**2)
+      # print mu, pi, el
+      if mu + pi + el > 0.00001:
+        Umuon_ratio = mu / (mu + pi + el)
         Upion_ratio = pi / (mu + pi + el)
         Uelec_ratio = el / (mu + pi + el)
-        if pass_cut["UTOF_Time"][2] > _config["particle_selection_ratio"]:
+        if Umuon_ratio > _config["particle_selection_ratio"]:
           pass_cut["Type"][0] = "muon"
+          pass_cut["UTOF_Time"][2] = Umuon_ratio
           self.count["UMTot"] += 1
         elif Upion_ratio > _config["particle_selection_ratio"]:
           pass_cut["Type"][0] = "pion"
+          pass_cut["UTOF_Time"][2] = Upion_ratio
           self.count["UPTot"] += 1
         elif Uelec_ratio > _config["particle_selection_ratio"]:
           pass_cut["Type"][0] = "electron"
+          pass_cut["UTOF_Time"][2] = Uelec_ratio
           self.count["UETot"] += 1
         else:
           self.count["UUTot"] += 1
 
-        if pass_cut["UTracks"][0]:
-          pass_cut["Mass_Cut"] = self.Mass_Cut(TOF0Time, TOF1Time, data["tracker_tracks"]["upstream"], \
-                                               pass_cut["UTracks"][1])
+      if pass_cut["UTracks"][0]:
+        pass_cut["Mass_Cut"] = self.Mass_Cut(TOF0Time, TOF1Time, data["tracker_tracks"]["upstream"], \
+                                             pass_cut["UTracks"][1])
 
     return pass_cut
 
@@ -386,9 +391,9 @@ class Cuts(object):
       y_chi = chisquare(yz_array[0], y_expect)
       tot_chi = math.sqrt(x_chi[0] ** 2 + y_chi[0] ** 2)
       if tot_chi < 10:
-        return [True, x_chi[0], y_chi[0], tot_chi]
+        return [True, abs(x_chi[0]), abs(y_chi[0]), tot_chi]
       else:
-        return [False, x_chi[0], y_chi[0], tot_chi]
+        return [False, abs(x_chi[0]), abs(y_chi[0]), tot_chi]
     return [False, x_chi, y_chi, tot_chi]
 
   ###############################################################################
@@ -500,20 +505,21 @@ class Cuts(object):
     for i in range(len(data["UTOF_Time"][1])):
       name = "UTime"
       title = "Upstream Timing"
-      self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 1000, 20, 40)
+      self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 500, 20, 40)
 
       if data["UTOF_Time"][2] > 0.0:
-        if data["Type"][0] == "muon":
-          ratio = data["UTOF_Time"][2]
-        else:
-          ratio = 1 - data["UTOF_Time"][2]
-        name = "UTime_" + data["Type"][0]
-        title = "Upstream Timing " + data["Type"][0]
-        self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 1000, 20, 40, weight = ratio)
+        ratio = data["UTOF_Time"][2]
+        name = "UTime_Weighted_" + data["Type"][0]
+        title = "Upstream Timing Weighted for " + data["Type"][0]
+        self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 500, 20, 40, weight = ratio)
       else:
         name = "UTime_" + data["Type"][0]
         title = "Upstream Timing " + data["Type"][0]
-        self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 1000, 20, 40)
+        self.o_time.Fill(name, title, data["UTOF_Time"][1][i], 500, 20, 40)
+      if not data["Type"][0] == "unknown":
+        name = "UTime_" + data["Type"][0]
+        title = "Upstream Timing " + data["Type"][0]
+        self.o_time.Fill(name, title, data["UTOF_Time"][1][0], 500, 20 , 40)
 
     if data["Only_One_UTOF_Track"]:
       name = "Diff_Cut"
@@ -554,9 +560,20 @@ class Cuts(object):
       title = "EMR All Tracks XY Chi2 " + data["Type"][0]
       self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 20000, 500, 0, 20000)
 
+      name = "Graph_EMR_Entire_XY_Ch2_" + data["Type"][0]
+      title = "EMR All Tracks XY Chi2 " + data["Type"][0]
+      col = 1
+      if data["Type"][0] == "muon":
+        col = 2
+      if data["Type"][0] == "pion":
+        col = 4
+      if data["Type"][0] == "electron":
+        col = 8
+      self.o_emr.Graph(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], color = col)
+
       name = "Narrow_EMR_Entire_XY_Ch2_" + data["Type"][0]
       title = "EMR All Tracks XY Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 200, 500, 0, 20000)
+      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 200, 500, 0, 200)
 
       name = "EMR_Entire_T_Ch2_" + data["Type"][0]
       title = "EMR All Tracks T Chi2 " + data["Type"][0]

@@ -420,6 +420,7 @@ def fill_emr_track (emr):
   temp["origin"]        = emr.GetEMRTrack().GetOrigin()
   temp["e_origin"]      = emr.GetEMRTrack().GetOriginErrors()
   temp["space_points"]  = []
+  temp["plane_hits"]    = []
   for sp in range(len(emr.GetEMRSpacePointArray())):
     EMR_space = emr.GetEMRSpacePointArray()[sp]
     temp2             = {}
@@ -430,4 +431,10 @@ def fill_emr_track (emr):
     temp2["m_charge"] = EMR_space.GetChargeMA()
     temp2["s_charge"] = EMR_space.GetChargeSA()
     temp["space_points"].append(temp2)
+  for ph in range(len(emr.GetEMRPlaneHitArray())):
+    EMR_plane = emr.GetEMRPlaneHitArray()[ph]
+    temp3 = {}
+    temp3["direction"] = EMR_plane.GetOrientation()
+    temp3["plane"]     = EMR_plane.GetPlane()
+    temp["plane_hits"].append(temp3)
   return temp

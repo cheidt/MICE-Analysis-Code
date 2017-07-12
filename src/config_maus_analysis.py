@@ -4,7 +4,7 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":5000,             # Maximum event to process to, negative for max
+"event_cut":2000,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
 "event_out":1000,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point

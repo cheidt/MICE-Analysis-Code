@@ -221,7 +221,8 @@ class Cuts(object):
 
 
   def Logic_Tests(self, pass_cut):
-    if pass_cut["Only_One_UTrack"] and pass_cut["Only_One_DTrack"]:
+    if pass_cut["Only_One_UTrack"] and pass_cut["Only_One_DTrack"] and \
+       pass_cut["UTrack_Good"][0] and pass_cut["DTrack_Good"][0]:
       pass_cut["Only_One_Track"] = True
 
     if pass_cut["Only_One_Track"] and pass_cut["Only_One_UTOF"]:

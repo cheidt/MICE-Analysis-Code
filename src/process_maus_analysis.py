@@ -34,9 +34,9 @@ class Process:
     clear_log = open(_config["log_file"],"w")
     clear_log.close()
     file_in = self.Load_file()
-    output_count = 0
+    output_count = -1
     for file in file_in:
-      base = output_count
+      base = output_count + 1
       _output.Message("READING MAUS FILE: ", file, exc=True)
       # Call in root file and check data is available
       root_file = ROOT.TFile(file, "READ")
@@ -204,8 +204,6 @@ class Process:
 
 
     if _config["ignore_emittance"] == False and \
-       cut_list["UTracks"][0] == True and \
-       cut_list["DTracks"][0] == True and \
        cut_list["UTracks"][0] == True and \
        cut_list["DTracks"][0] == True:
       self.emittance.Process(self.data["tracker_tracks"], cut_list)

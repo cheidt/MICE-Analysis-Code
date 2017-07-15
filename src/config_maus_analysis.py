@@ -4,9 +4,9 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":-20,             # Maximum event to process to, negative for max
+"event_cut":500,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
-"event_out":1000,           # How often to output event number
+"event_out":10,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
 
@@ -42,15 +42,13 @@ check_config = {
 
 
 # Maus data
-#"file_name":["08873_recon.root", "08874_recon.root", "08875_recon.root", "08877_recon.root", \
-#             "08878_recon.root", "08879_recon.root", "08880_recon.root", "08881_recon.root", \
-#             "08882_recon.root"],
-#"data_directory": '/media/chris/Research/data/6-240/',
+# #"data_directory": '/media/chris/Research/data/6-240/',
 #"data_directory": '/home/chris/work/simulation/simple_beam/',
 "data_directory": '/media/chris/Research/data/MAUS-2.7.0/6-240/',
-"file_name": ["08873_recon.root", "08874_recon.root", "08875_recon.root"], #, \
+"file_name": ["08873_recon.root", "08874_recon.root", "08875_recon.root"],#, \
 #              "08877_recon.root", "08878_recon.root", "08879_recon.root", \
 #              "08880_recon.root", "08881_recon.root", "08882_recon.root"],
+# "file_name":["08875_recon.root"],
 #"data_directory":"/vols/fets2/heidt/offline/simulation/Test/alpha_rotation_flip/",
 "log_file":os.environ['ANALYSIS_DIR']+"/tmp/log.log",
 }

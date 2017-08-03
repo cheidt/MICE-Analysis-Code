@@ -43,12 +43,14 @@ class Cuts(object):
                 "Only_One_Track": False, "DTOF_Time": [False, [-10]], "DTracks": [False, -10], \
                 "Type": ["unknown", "unknown"], "UTrack_Good": [False, [False]], "DTrack_Good": [False, [False]], \
                 "Only_One_DTOF": False, "EMR_Chi2": [False, -10, -10, -10], "EMR_Den": [False, -10], \
-                "UTracker_Scraping": [False, -10], "DTracker_Scraping": [False, -10], "Pass": False}
+                "UTracker_Scraping": [False, -10], "DTracker_Scraping": [False, -10], "Pass": False, \
+                "Mom_Cut": [[False], [False]]}
 
     pass_cut = self.Check_TOF(data, pass_cut)
     pass_cut = self.Check_Tracker(data, pass_cut)
     pass_cut = self.Check_EMR(data, pass_cut)
     pass_cut = self.Logic_Tests(pass_cut)
+    pass_cut = self.Check_Mass(data, pass_cut)
     self.Cut_Prints(pass_cut)
 #    raw_input("Press Enter to Exit")
     return pass_cut
@@ -111,7 +113,6 @@ class Cuts(object):
     if pass_cut["TOF0"][0] and pass_cut["TOF1"][0]:
       pass_cut["UTOF_Time"] = self.TOF_Timing_Cut(TOF0Time, TOF1Time)
       tof_time = pass_cut["UTOF_Time"][1][0]
-      # print tof_time
       mu = _config["U_c_mu"] * math.e**(-0.5 * ((tof_time - _config["U_mu_mu"]) / _config["U_sigma_mu"])**2)
       pi = _config["U_c_pi"] * math.e**(-0.5 * ((tof_time - _config["U_mu_pi"]) / _config["U_sigma_pi"])**2)
       el = _config["U_c_el"] * math.e**(-0.5 * ((tof_time - _config["U_mu_el"]) / _config["U_sigma_el"])**2)
@@ -134,18 +135,13 @@ class Cuts(object):
           self.count["UETot"] += 1
         else:
           self.count["UUTot"] += 1
-
-      if pass_cut["UTracks"][0]:
-        pass_cut["Mass_Cut"] = self.Mass_Cut(TOF0Time, TOF1Time, data["tracker_tracks"]["upstream"], \
-                                             pass_cut["UTracks"][1])
-
     return pass_cut
 
 
   def Check_Tracker(self, data, pass_cut):
     if "tracker_tracks" in data:
       if len(data["tracker_tracks"]["upstream"]) > 0:
-        good = []
+        good = []; mom_cut =[]
         pass_cut["UTracks"] = [True, len(data["tracker_tracks"]["upstream"])]
         if pass_cut["UTracks"][1] == 1:
           pass_cut["Only_One_UTrack"] = True
@@ -153,10 +149,17 @@ class Cuts(object):
           good.append(data["tracker_tracks"]["upstream"][i]["good"])
           if good[-1]:
             pass_cut["UTrack_Good"][0] = True
+          for point in data["tracker_tracks"]["upstream"][i]["track_points"]:
+            if point["station"] == 5 and point["plane"]  == 0:
+              if abs(point["x_mom"]) > .0001 and abs(point["y_mom"]) > .0001:
+                mom_cut.append(True)
+              else:
+                mom_cut.append(False)
+        pass_cut["Mom_Cut"][0] = mom_cut
         pass_cut["UTrack_Good"][1] = good
 
       if len(data["tracker_tracks"]["downstream"]) > 0:
-        good = []
+        good = []; mom_cut = []
         pass_cut["DTracks"] = [True, len(data["tracker_tracks"]["downstream"])]
         if pass_cut["DTracks"][1] == 1:
           pass_cut["Only_One_DTrack"] = True
@@ -164,7 +167,15 @@ class Cuts(object):
           good.append(data["tracker_tracks"]["downstream"][i]["good"])
           if good[-1]:
             pass_cut["DTrack_Good"][0] = True
+          for point in data["tracker_tracks"]["downstream"][i]["track_points"]:
+            if point["station"] == 5 and point["plane"]  == 0:
+              if abs(point["x_mom"]) > .0001 and abs(point["y_mom"]) > .0001:
+                mom_cut.append(True)
+              else:
+                mom_cut.append(False)
+        pass_cut["Mom_Cut"][1] = mom_cut
         pass_cut["DTrack_Good"][1] = good
+
     if pass_cut["UTracks"][0]:
       pass_cut["Rad_Diff"] = self.Radial_Diffuser_Cut(data["tracker_tracks"]["upstream"], \
                                                         pass_cut["UTracks"][1])
@@ -189,6 +200,7 @@ class Cuts(object):
       data = data["EMR_tracks"]
       pass_cut["EMR_Chi2"] = self.EMR_Chi2_Test(data)
       pass_cut["EMR_Den"]  = self.EMR_Density_Test(data)
+      pass_cut["EMR_Mass"] = self.EMR_Mass_Test(data, pass_cut)
       # for track in data:
       #   name = "EMR_Time_" + pass_cut["Type"][0]
       #   title = "EMR Global Timing " + pass_cut["Type"][0]
@@ -232,11 +244,12 @@ class Cuts(object):
       pass_cut["Only_One_All"] = True
 
     if pass_cut["Only_One_All"] and pass_cut["UTOF_Time"][0] and pass_cut["UTracker_Scraping"][0] and \
-       pass_cut["DTracker_Scraping"][0]: #and pass_cut["Mass_Cut"][0]:
-      pass_cut["Pass"] = True
+       pass_cut["DTracker_Scraping"][0] and pass_cut["Mom_Cut"][0][0] and pass_cut["Mom_Cut"][1][0]:
+      #and pass_cut["Mass_Cut"][0]:
       self.count["Pass"] += 1
       if pass_cut["Type"][0] == "muon":
         self.count["MPass"] += 1
+        pass_cut["Pass"] = True
       if pass_cut["Type"][0] == "pion":
         self.count["PPass"] += 1
       if pass_cut["Type"][0] == "electron":
@@ -247,65 +260,97 @@ class Cuts(object):
     return pass_cut
 
 
-  def Mass_Cut(self, time0, time1, tracks, size):
-    #dz = 7.64231643643#dz = 7.94231643643
+  def Check_Mass(self, data, pass_cut):
+    me = _config["me"]; mm = _config["mm"]; density = _config["density"]
+    an = _config["atomic_number"]; am = _config["atomic_mass"]; K = _config["K"]
+    I  = _config["mean_excitation"] * an
     dz = 7.610
-    t_e = 25.39
-    m_e = 0.510999
-    m_m = 105.66
-    m_p = 938.272
-    final_mass = []
-    for t0 in time0:
-      for t1 in time1:
-        for i in range(size):
-          for l in range(len(tracks[i]["track_points"])):
-            if tracks[i]["track_points"][l]["station"] == 5 and \
-               tracks[i]["track_points"][l]["plane"] == 0:
-              track = tracks[i]["track_points"][l]
-          time = (t1 - t0)
-          beta = t_e/time
-          density = .001204
-          I = 11.6 * 7.311 / 1000000
+    if pass_cut["Only_One_All"]:
+      for detector in ["upstream", "downstream"]:
+        key = str(detector[0].capitalize() + "TOF_Time")
+        ptime = pass_cut[key][1][0]
+        ctime = _config["{}_timing".format(detector)]
+        beta  = ptime/ctime
 
-          #new_mass = False
-          if beta < 1 and beta > 0:
-            gamma = math.sqrt(1.0 - beta**2)
-            T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_m)+(m_e/m_m)**2)
-            energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
-            energy_loss = energy_loss_per_step * dz * 100 * density
+        if beta > 0 and beta < 1:
+          for point in data["tracker_tracks"][detector][0]["track_points"]:
+            if point["plane"] == 0 and point["station"] == 5:
+              momentum = point
+          gamma = math.sqrt(1. - beta ** 2.)
+          T_max = 2. * me * beta**2. * gamma**2. / (1.+(2.*gamma * me / mm) + (me / mm)**2.)
+          dedl = K * (an / am) / beta**2. * (0.5*math.log(2.*me * beta**2. * gamma**2. * T_max / I**2.) - beta**2)
+          de = dedl * dz * 100 * density
 
-            if energy_loss > 0:
-              loss_mom = ((energy_loss + m_m)**2 - m_m**2)**(.5)
-              restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
-              raw_mass = restored_mom / beta
-              final_mass.append(gamma * raw_mass)
-    for mass in final_mass:
-      if abs(mass - 103.22) < 7.8:
-        return [True, final_mass]
-    return [False, final_mass]
+          if de > 0:
+            loss_mom = math.sqrt((de + mm)**2. - mm**2.)
+            restored_mom = math.sqrt(momentum["z_mom"]**2. + momentum["x_mom"]**2. + momentum["y_mom"]**2.) + loss_mom
+            raw_mass = restored_mom / beta
+            final_mass = gamma * raw_mass
 
-      #else:
-        #new_mass = True
+            name  = "Mass_{}".format(detector)
+            title = "Mass {}".format(detector)
+            self.o_time.Fill(name, title, final_mass, 600, 0, 300)
+    return pass_cut
 
-      #if new_mass == True and energy_loss < 0:
-        #T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_p)+(m_e/m_p)**2)
-        #energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
-        #energy_loss = energy_loss_per_step * dz * 100 * density
 
-        #if energy_loss > 0:
-          #loss_mom = ((energy_loss + m_p)**2 - m_p**2)**(.5)
-          #restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
-          #raw_mass = restored_mom / beta
-          #final_mass = gamma * raw_mass
+            # def Mass_Cut(self, time0, time1, tracks, size):
+            # #dz = 7.64231643643#dz = 7.94231643643
+            # dz = 7.610
+            # t_e = 24.75
+            # m_e = 0.510999
+            # m_m = 105.66
+            # final_mass = []
+            # for t0 in time0:
+            #   for t1 in time1:
+            #     for i in range(size):
+            #       for l in range(len(tracks[i]["track_points"])):
+            #         if tracks[i]["track_points"][l]["station"] == 5 and \
+            #            tracks[i]["track_points"][l]["plane"] == 0:
+            #           track = tracks[i]["track_points"][l]
+            #       time = (t1 - t0)
+            #       beta = t_e/time
+            #       density = .001204
+            #       I = 11.6 * 7.311 / 1000000
+            #
+            #       #new_mass = False
+            #       if beta < 1 and beta > 0:
+            #         gamma = math.sqrt(1.0 - beta**2)
+            #         T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_m)+(m_e/m_m)**2)
+            #         energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
+            #         energy_loss = energy_loss_per_step * dz * 100 * density
+            #
+            #         if energy_loss > 0:
+            #           loss_mom = ((energy_loss + m_m)**2 - m_m**2)**(.5)
+            #           restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
+            #           raw_mass = restored_mom / beta
+            #           final_mass.append(gamma * raw_mass)
+            # for mass in final_mass:
+            #   if abs(mass - 103.22) < 7.8:
+            #     return [True, final_mass]
+            # return [False, final_mass]
 
-          #if final_mass > 500.:
+            #else:
+            #new_mass = True
+
+            #if new_mass == True and energy_loss < 0:
+            #T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_p)+(m_e/m_p)**2)
+            #energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
+            #energy_loss = energy_loss_per_step * dz * 100 * density
+
+            #if energy_loss > 0:
+            #loss_mom = ((energy_loss + m_p)**2 - m_p**2)**(.5)
+            #restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
+            #raw_mass = restored_mom / beta
+            #final_mass = gamma * raw_mass
+
+            #if final_mass > 500.:
             #name = "Mass_Plot"
             #title = "Mass"
             #self.o_time.Fill(name, title, final_mass, 1200, 0, 1200)
             #print final_mass
-          #else:
+            #else:
             #print "Whoops"
-    #return False
+            #return False
 
 
   def TOF_Timing_Cut(self, tof1, tof2):
@@ -416,6 +461,38 @@ class Cuts(object):
         return [True, density]
     return[False, density]
 
+  def EMR_Mass_Test(self, data, pass_cut):
+    q1 = 0.007297**(0.5)
+    c = .001239842/1000000.0
+    # if range(len(data)) > 1:
+      # print "Two EMR tracks"
+    # print pass_cut["Type"]
+    mass_ma = data[0]["charge_MA"] / q1 * (data[0]["charge_MA"] / (q1 * data[0]["range"]) - 1)
+    mass_sa = data[0]["charge_SA"] / q1 * (data[0]["charge_SA"] / (q1 * data[0]["range"]) - 1)
+    #
+    # print "Charge MA: ", data[0]["charge_MA"]
+    # print "Mass MA:   ", mass_ma
+    # print "Charge SA: ", data[0]["charge_SA"]
+    # print "Mass SA:   ", mass_sa
+    # print "Range:     ", data[0]["range"], "\n"
+
+    mass_ma = data[0]["charge_MA"] / q1 * (data[0]["charge_MA"] / (q1 * data[0]["range"] * c) - 1)
+    mass_sa = data[0]["charge_SA"] / q1 * (data[0]["charge_SA"] / (q1 * data[0]["range"] * c) - 1)
+    #
+    # print "After Range Conversion: "
+    # print "Mass MA:   ", mass_ma
+    # print "Mass SA:   ", mass_sa, "\n"
+
+    q2 = 1.60217662 * 10.0**(-19)
+    k  = 8.987552   * 10.0**(9)
+    c  = 5.60958    * 10.0**(29)
+    mass_ma = data[0]["charge_MA"] / q2 * (data[0]["charge_MA"] / (q2 * k * data[0]["range"] / 1000) - 1)
+    mass_sa = data[0]["charge_SA"] / q2 * (data[0]["charge_SA"] / (q2 * k * data[0]["range"] / 1000) - 1)
+    #
+    # print "Using MKS Units: "
+    # print "Mass MA:   ", mass_ma
+    # print "Mass SA:   ", mass_sa, "\n\n\n"
+
   ###############################################################################
   # Prints out everything I care to look at
   ###############################################################################
@@ -488,19 +565,19 @@ class Cuts(object):
       number = 21
       self.o_other.Fill(name, title, number, 22, 0, 22)
 
-    for i in range(len(data["Mass_Cut"][1])):
-      name = "Mass_Plot"
-      title = "Mass"
-      self.o_time.Fill(name, title, data["Mass_Cut"][1][i], 500, 0, 500)
+    # for i in range(len(data["Mass_Cut"][1])):
+    #   name = "Mass_Plot"
+    #   title = "Mass"
+    #   self.o_time.Fill(name, title, data["Mass_Cut"][1][i], 500, 0, 500)
 
     for i in range(len(data["DTOF_Time"][1])):
       name = "DTime"
       title = "Downstream Timing"
-      self.o_time.Fill(name, title, data["DTOF_Time"][1][i], 250, 25, 45)
+      self.o_time.Fill(name, title, data["DTOF_Time"][1][i], 500, 25, 45)
 
       name = "DTime_" + data["Type"][0]
       title = "Downstream Timing " + data["Type"][0]
-      self.o_time.Fill(name, title, data["DTOF_Time"][1][i], 1000, 25, 45)
+      self.o_time.Fill(name, title, data["DTOF_Time"][1][i], 500, 25, 45)
 
 
     for i in range(len(data["UTOF_Time"][1])):

@@ -1,6 +1,4 @@
 import ROOT
-import os
-import json
 import pprint
 from config_maus_analysis import out_config as _config
 

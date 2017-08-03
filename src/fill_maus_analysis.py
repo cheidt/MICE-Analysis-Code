@@ -177,7 +177,6 @@ def Virtual_Hits(virt):
       container[detector][station].append(virtual)
   return container
 
-
 def fill_tof(tofpt):
   temp               = {}
   temp["TOF"]        = tofpt.GetDetector()
@@ -406,6 +405,8 @@ def fill_emr_track (emr):
   temp["scharge_ratio"] = emr.GetChargeRatioSA()
   temp["mden_ratio"]    = emr.GetPlaneDensityMA()
   temp["sden_ratio"]    = emr.GetPlaneDensitySA()
+  temp["charge_MA"]     = emr.GetTotalChargeMA()
+  temp["charge_SA"]     = emr.GetTotalChargeSA()
   temp["time"]          = emr.GetTime()
   temp["type"]          = emr.GetType()
   temp["mom"]           = emr.GetEMRTrack().GetMomentum()

@@ -1,6 +1,6 @@
 import output_maus_analysis as _output
 import numpy as np
-import json
+import math
 
 class Analysis(object):
   def __init__ (self):
@@ -19,8 +19,7 @@ class Analysis(object):
         for i in range(len(tracks)):
           for j in range(len(tracks[i]["track_points"])):
             track_pt = tracks[i]["track_points"][j]
-            if track_pt["station"] == 5 and track_pt["plane"] == 0 and \
-               track_pt["x_mom"]**2 > .000001  and track_pt["y_mom"]**2 > .000001:
+            if track_pt["station"] == 5 and track_pt["plane"] == 0:
               _output.Message("Found a {} point".format(detector))
               event[detector] = [track_pt["x_pos"], track_pt["x_mom"], \
                                  track_pt["y_pos"], track_pt["y_mom"]]
@@ -28,20 +27,26 @@ class Analysis(object):
               name = "Emit_X_{}".format(detector)
               title = "Emittance X {}".format(detector)
               self.o_sel.Fill(name, title, track_pt["x_pos"], track_pt["x_mom"], \
-                              300, -200, 200, 300, -200, 200)
+                              200, -200, 200, 200, -200, 200)
               name = "Emit_Y_{}".format(detector)
               title = "Emittance Y {}".format(detector)
               self.o_sel.Fill(name, title, track_pt["y_pos"], track_pt["y_mom"], \
-                              300, -200, 200, 300, -200, 200)
+                              200, -200, 200, 200, -200, 200)
+          if len(tracks) > 1:
+            print detector
+            print "Why so many tracks?"
+            raw_input("Press Enter to Exit")
+          if event[detector] == []:
+            print detector
+            print event[detector]
+            print cut_list
+            print tracks[i]["track_points"]
+            raw_input("Press Enter to Exit")
       self.terms.append(event)
-      if self.terms[-1]["upstream"] == []:
-        print "upstream"
-        print "event: ", len(self.terms)
-        print self.terms[-1]["upstream"], "\n\n"
-      if self.terms[-1]["downstream"] == []:
-        print "downstream"
-        print "event: ", len(self.terms)
-        print self.terms[-1]["downstream"], "\n\n"
+      if self.terms[-1] == []:
+        print "Problem writting event: ", len (self.terms)
+        print self.terms[-1]
+
 
   def Write(self):
     self.o_sel.Write()
@@ -55,14 +60,14 @@ class Analysis(object):
     eval   = {"upstream": [], "downstream": []}
     x_eval = {"upstream": [], "downstream": []}
     y_eval = {"upstream": [], "downstream": []}
+    i = 0
     for event in self.terms:
       for detector in event:
         eval[detector].append(event[detector])
-        # print event[detector]
         x_eval[detector].append([event[detector][0], event[detector][1]])
         y_eval[detector].append([event[detector][2], event[detector][3]])
     for detector in eval:
-########################################################################################################################
+      ########################################################################################################################
       # print "Check"
       # xpos = []; xmom = []; xpos_sqr = []; xmom_sqr = []
       # test1 = []; test2 = []; test3 = []; test4 = []; test5 = []
@@ -149,7 +154,7 @@ class Analysis(object):
       # print (ninth / (size))
       # print (tenth / (size)), "\n"
 
-########################################################################################################################
+      ########################################################################################################################
 
       data   = np.array(eval[detector]).T
       x_data = np.array(x_eval[detector]).T
@@ -171,7 +176,7 @@ class Analysis(object):
       y_emit = sum(self.factor[detector])/len(self.factor[detector]) * abs(float(np.linalg.det(y_cov)))**(1./2.)
       print y_emit, '\n'
 
-########################################################################################################################
+      ########################################################################################################################
       # print "Experiment:"
       # print "\nX Y Covariance:"
       # print cov, "\n"
@@ -187,10 +192,62 @@ class Analysis(object):
       # print y_emit, '\n'
       #
       # print "Factor: ", sum(self.factor[detector]) / len(self.factor[detector])
-########################################################################################################################
+      ########################################################################################################################
 
-      xpos = []; ypos = []; xmom = []; ymom = []
-      for detector in x_eval:
-        for i in x_eval[detector]:
-          xpos.append(x_eval[detector][i][0])
-          x_fit = np.polyfit(x_eval[detector][1], x_eval[detector][0], 1, full=True)
+      x = []; px = []; y = []; py = []
+      for i in range(len(x_eval[detector])):
+        x.append(x_eval[detector][i][0])
+        px.append(x_eval[detector][i][1])
+        y.append(y_eval[detector][i][0])
+        py.append(y_eval[detector][i][1])
+      ave_pos_x = sum(x)  / len(x)
+      ave_mom_x = sum(px) / len(px)
+      ave_pos_y = sum(y)  / len(y)
+      ave_mom_y = sum(py) / len(py)
+      for i in range(len(x)):
+        x[i]  = x[i]  - ave_pos_x
+        px[i] = px[i] - ave_mom_x
+        y[i]  = y[i]  - ave_pos_y
+        py[i] = py[i] - ave_mom_y
+      x_fit = np.polyfit(x, px, 1, full=True)
+      y_fit = np.polyfit(y, py, 1, full=True)
+      theta_x = math.atan(x_fit[0][0])
+      theta_y = math.atan(y_fit[0][0])
+      for i in range(len(x_eval[detector])):
+        x[i]  = math.cos(theta_x) * x[i]  + math.sin(theta_x)  * px[i]
+        px[i] = math.cos(theta_x) * px[i] - math.sin(theta_x)  * x[i]
+        y[i]  = math.cos(theta_y) * y[i]  + math.sin(theta_y)  * py[i]
+        py[i] = math.cos(theta_y) * py[i] - math.sin(theta_y)  * y[i]
+
+        name = "Mod_Emit_X_{}".format(detector)
+        title = "Modified Emittance X {}".format(detector)
+        self.o_sel.Fill(name, title, x[i], px[i], \
+                        200, -200, 200, 200, -200, 200)
+        name = "Mod_Emit_Y_{}".format(detector)
+        title = "Modified Emittance Y {}".format(detector)
+        self.o_sel.Fill(name, title, y[i], py[i], \
+                        200, -200, 200, 200, -200, 200)
+
+        name = "Mod_Pos_X_{}".format(detector)
+        title = "Modified Position X {}".format(detector)
+        self.o_sel.Fill(name, title, x[i], 200, -200, 200)
+        name = "Mod_Pos_Y_{}".format(detector)
+        title = "Modified Position Y {}".format(detector)
+        self.o_sel.Fill(name, title, y[i], 200, -200, 200)
+        name = "Mod_Mom_X_{}".format(detector)
+        title = "Modified Momentum X {}".format(detector)
+        self.o_sel.Fill(name, title, px[i], 200, -200, 200)
+        name = "Mod_Mom_Y_{}".format(detector)
+        title = "Modified Momentum Y {}".format(detector)
+        self.o_sel.Fill(name, title, py[i], 200, -200, 200)
+
+      print "Modified Fits:\n"
+      self.o_sel.Gaus_Fit(-200, 200, "Mod_Pos_X_{}".format(detector))
+      self.o_sel.Gaus_Fit(-200, 200, "Mod_Pos_Y_{}".format(detector))
+      self.o_sel.Gaus_Fit(-200, 200, "Mod_Mom_X_{}".format(detector))
+      self.o_sel.Gaus_Fit(-200, 200, "Mod_Mom_Y_{}".format(detector))
+
+      y1 = x_fit[0][1] + x_fit[0][0] *  150.0
+      y2 = x_fit[0][1] + x_fit[0][0] * -150.0
+      print " 150, ", y1
+      print "-150, ", y2

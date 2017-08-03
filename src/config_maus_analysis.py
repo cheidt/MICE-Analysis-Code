@@ -4,9 +4,9 @@ import os
   #  verb_math scripts
 check_config = {
 # Limits and Cuts
-"event_cut":500,             # Maximum event to process to, negative for max
+"event_cut":2000,             # Maximum event to process to, negative for max
 "min_event":0,              # Minimum event to process, testing purposes
-"event_out":10,           # How often to output event number
+"event_out":100,           # How often to output event number
 "SP_Limit":12,              # Number of PE needed to recognize a space point
 
 
@@ -83,7 +83,7 @@ out_config = {
 }
 
 emittance_config = {
-"cut_list":{"Diff_Scrap":True}
+"cut_list":{"Diff_Scrap":True},
 }
 
 cut_config = {
@@ -108,4 +108,15 @@ cut_config = {
 "D_sigma_el": 0.4345,
 
 "particle_selection_ratio": 0.8,
+
+"upstream_timing":24.75,            #ns between TOF0 and TOF1 for fastest particle
+"downstream_timing":27.20,          #ns between TOF1 and TOF2 for fastest particle
+"me":0.51099,                       #mass of electron in MeV
+"mm":105.66,                        #mass of muon in MeV
+"mp":139.57,                        #mass of pion in MeV
+"density":0.001225,                 #density of air in g/cm^-3
+"mean_excitation":0.0000116,        #in MeV per atomic number
+"atomic_number":7.311,              #atomic number of air
+"atomic_mass":14.666,               #atomic mass of air
+"K":0.307075,                       #MeV g^-1 cm^2 from PDG
 }

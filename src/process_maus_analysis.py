@@ -80,6 +80,7 @@ class Process:
       print count["UUTot"], " / ", count["UPass"], "\n"
       self.emittance.Emittance()
     self.Output()
+    raw_input("Press Enter to Exit")
 
 #########################################################################################
   # Reads a single MICE event and sets up all the containers that will be needed
@@ -226,7 +227,6 @@ class Process:
       self.emittance.Write()
       self.cuts.Write()
     self.analysis.Write()
-    raw_input("Press Enter to Exit")
 
 #########################################################################################
   # Searches predefined data directory to find specified processed MAUS file.

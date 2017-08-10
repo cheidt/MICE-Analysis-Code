@@ -8,22 +8,24 @@ from scipy.stats import chisquare
 
 class Cuts(object):
   def __init__ (self):
-    self.o_time = _output.Output("Time")
-    self.o_emr = _output.Output("EMR")
+    self.o_time  = _output.Output("Time")
+    self.o_emr   = _output.Output("EMR")
     self.o_other = _output.Output("Other")
-    self.count = {"Pass":0, "Total":0, "UMTot": 0, "UPTot": 0, "UETot": 0, "UUTot": 0, \
-                  "MPass": 0, "PPass": 0, "EPass": 0, "UPass": 0, "TEMR": 0, "MMSDR": 0, "PMSDR": 0, \
-                  "EMSDR": 0, "UMSDR": 0, "DMTot": 0, "DPTot": 0, "DETot": 0, "DUTot": 0}
+    self.o_mass  = _output.Output("Mass")
+    self.count   = {"Pass":0, "Total":0, "UMTot": 0, "UPTot": 0, "UETot": 0, "UUTot": 0, \
+                    "MPass": 0, "PPass": 0, "EPass": 0, "UPass": 0, "TEMR": 0, "MMSDR": 0, "PMSDR": 0, \
+                    "EMSDR": 0, "UMSDR": 0, "DMTot": 0, "DPTot": 0, "DETot": 0, "DUTot": 0}
 
   def Write(self):
     # self.o_time.Gaus_Fit(27.0, 29.0, "DTime")
     # self.o_time.Gaus_Fit(29.0, 31.5, "DTime")
     # self.o_time.Gaus_Fit(31.5, 34.0, "DTime")
-    self.o_emr.Add_Graphs("Chi2_Graph", "EMR Chi2", "Graph_EMR_Entire_XY_Ch2_muon", \
-                           "Graph_EMR_Entire_XY_Ch2_pion", "Graph_EMR_Entire_XY_Ch2_electron")
+    #self.o_emr.Add_Graphs("Chi2_Graph", "EMR Chi2", "Graph_EMR_Entire_XY_Ch2_muon", \
+    #                       "Graph_EMR_Entire_XY_Ch2_pion", "Graph_EMR_Entire_XY_Ch2_electron")
     self.o_time.Write()
     self.o_emr.Write()
     self.o_other.Write()
+    self.o_mass.Write()
 
   def Out_Count(self):
     return self.count
@@ -37,20 +39,22 @@ class Cuts(object):
     self.count["Total"] += 1
     pass_cut = {"Rad_Diff": [False, [-10], [-10]], "UTOF_Time": [False, [-10], -10], "Only_One_TOF0": False, \
                 "Only_One_TOF1": False, "Mass_Cut": [False, [-10]], "Only_One_UTrack": False, \
-                "Only_One_DTrack": False, "UTracks": [False, [-10]], "TOF0": [False, [-10]], \
-                "TOF1": [False, [-10]], "TOF2": [False, [-10]], "Only_One_TOF2": False, \
+                "Only_One_DTrack": False, "UTracks": [False, [-10]], "TOF0": [False, 0, [-10]], \
+                "TOF1": [False, 0, [-10]], "TOF2": [False, 0, [-10]], "Only_One_TOF2": False, \
                 "Only_One_UTOF": False, "Only_One_UTOF_Track": False, "Only_One_All": False, \
                 "Only_One_Track": False, "DTOF_Time": [False, [-10]], "DTracks": [False, -10], \
-                "Type": ["unknown", "unknown"], "UTrack_Good": [False, [False]], "DTrack_Good": [False, [False]], \
-                "Only_One_DTOF": False, "EMR_Chi2": [False, -10, -10, -10], "EMR_Den": [False, -10], \
-                "UTracker_Scraping": [False, -10], "DTracker_Scraping": [False, -10], "Pass": False, \
-                "Mom_Cut": [[False], [False]]}
+                "Type": ["unknown", "unknown", "unknown"], "UTrack_Good": [False, [False]], \
+                "DTrack_Good": [False, [False]], "Only_One_DTOF": False, "EMR_Chi2": [False, -10, -10, -10], \
+                "EMR_Den": [False, -10], "UTracker_Scraping": [False, -10], "DTracker_Scraping": [False, -10], \
+                "Pass": False, "Mom_Cut": [[False], [False]]}
 
     pass_cut = self.Check_TOF(data, pass_cut)
     pass_cut = self.Check_Tracker(data, pass_cut)
     pass_cut = self.Check_EMR(data, pass_cut)
     pass_cut = self.Logic_Tests(pass_cut)
     pass_cut = self.Check_Mass(data, pass_cut)
+    if pass_cut["UTracks"][0] and pass_cut["TOF0"][0] and pass_cut["TOF1"][0]:
+      pass_cut["Mass_Cut"] = self.Mass_Cut(pass_cut["TOF0"][2], pass_cut["TOF1"][2], data["tracker_tracks"]["upstream"], len(data["tracker_tracks"]["upstream"]))
     self.Cut_Prints(pass_cut)
 #    raw_input("Press Enter to Exit")
     return pass_cut
@@ -58,28 +62,31 @@ class Cuts(object):
 
   def Check_TOF(self, data, pass_cut):
     if "TOF0_space_points" in data:
-      pass_cut["TOF0"] = [True, len(data["TOF0_space_points"])]
+      pass_cut["TOF0"] = [True, len(data["TOF0_space_points"]), [-10]]
       if pass_cut["TOF0"][1] == 1:
         pass_cut["Only_One_TOF0"] = [True]
       TOF0Time = []
       for i in range(pass_cut["TOF0"][1]):
         TOF0Time.append(data["TOF0_space_points"][i]["time"])
+      pass_cut["TOF0"][2] = TOF0Time
 
     if "TOF1_space_points" in data:
-      pass_cut["TOF1"] = [True, len(data["TOF1_space_points"])]
+      pass_cut["TOF1"] = [True, len(data["TOF1_space_points"]), [-10]]
       if pass_cut["TOF1"][1] == 1:
         pass_cut["Only_One_TOF1"] = True
       TOF1Time = []
       for j in range(pass_cut["TOF1"][1]):
         TOF1Time.append(data["TOF1_space_points"][j]["time"])
+      pass_cut["TOF1"][2] = TOF1Time
 
     if "TOF2_space_points" in data:
-      pass_cut["TOF2"] = [True, len(data["TOF2_space_points"])]
+      pass_cut["TOF2"] = [True, len(data["TOF2_space_points"]), [-10]]
       if pass_cut["TOF2"][1] == 1:
         pass_cut["Only_One_TOF2"] = True
       TOF2Time = []
       for k in range(pass_cut["TOF2"][1]):
         TOF2Time.append(data["TOF2_space_points"][k]["time"])
+      pass_cut["TOF2"][2] = TOF2Time
 
     if pass_cut["Only_One_TOF1"] and pass_cut["Only_One_TOF0"]:
       pass_cut["Only_One_UTOF"] = True
@@ -198,21 +205,21 @@ class Cuts(object):
     if "EMR_tracks" in data:
       self.count["TEMR"] += 1
       data = data["EMR_tracks"]
-      pass_cut["EMR_Chi2"] = self.EMR_Chi2_Test(data)
-      pass_cut["EMR_Den"]  = self.EMR_Density_Test(data)
+      # pass_cut["EMR_Chi2"] = self.EMR_Chi2_Test(data)
+      # pass_cut["EMR_Den"]  = self.EMR_Density_Test(data)
+      for track in data:
+        if track["type"] == "mother":
+          pass_cut["EMR_Den"][1]  = track["mden_ratio"]
+          pass_cut["EMR_Chi2"][3] = track["chi2"]
+          if track["mden_ratio"] > .9:
+            pass_cut["EMR_Den"][0] = True
+          if track["chi2"] < 5:
+            pass_cut["EMR_Chi2"][0] = True
       pass_cut["EMR_Mass"] = self.EMR_Mass_Test(data, pass_cut)
       # for track in data:
       #   name = "EMR_Time_" + pass_cut["Type"][0]
       #   title = "EMR Global Timing " + pass_cut["Type"][0]
       #   self.o_emr.Fill(name, title, track["time"], 300, 0, 3000000)
-      #
-      #   name = "EMR_Ch2_" + pass_cut["Type"][0]
-      #   title = "EMR Track Chi2" + pass_cut["Type"][0]
-      #   self.o_emr.Fill(name, title, track["chi2"], 100, 0, 200)
-      #
-      #   name = "EMR_MDensity_" + pass_cut["Type"][0]
-      #   title = "EMR Mother Plane Density " + pass_cut["Type"][0]
-      #   self.o_emr.Fill(name, title, track["mden_ratio"], 200, 0, 1.2)
       #
       #   name = "EMR_MCharge_Density_" + pass_cut["Type"][0]
       #   title = "EMR Mother Charge Density " + pass_cut["Type"][0]
@@ -261,73 +268,97 @@ class Cuts(object):
 
 
   def Check_Mass(self, data, pass_cut):
-    me = _config["me"]; mm = _config["mm"]; density = _config["density"]
+    me = _config["me"]; mm = _config["mm"]; mp = _config["mp"]; density = _config["density"]
     an = _config["atomic_number"]; am = _config["atomic_mass"]; K = _config["K"]
     I  = _config["mean_excitation"] * an
-    dz = 7.610
-    if pass_cut["Only_One_All"]:
+    dz = 4.80
+    if pass_cut["Only_One_All"] and not pass_cut["Type"][0] == "unknown":
       for detector in ["upstream", "downstream"]:
         key = str(detector[0].capitalize() + "TOF_Time")
         ptime = pass_cut[key][1][0]
         ctime = _config["{}_timing".format(detector)]
-        beta  = ptime/ctime
+        beta  = ctime/ptime
 
         if beta > 0 and beta < 1:
           for point in data["tracker_tracks"][detector][0]["track_points"]:
             if point["plane"] == 0 and point["station"] == 5:
               momentum = point
           gamma = math.sqrt(1. - beta ** 2.)
-          T_max = 2. * me * beta**2. * gamma**2. / (1.+(2.*gamma * me / mm) + (me / mm)**2.)
+          mpart = mm
+          T_max = 2. * me * beta**2. * gamma**2. / (1.+(2.*gamma * me / mpart) + (me / mpart)**2.)
           dedl = K * (an / am) / beta**2. * (0.5*math.log(2.*me * beta**2. * gamma**2. * T_max / I**2.) - beta**2)
           de = dedl * dz * 100 * density
 
           if de > 0:
-            loss_mom = math.sqrt((de + mm)**2. - mm**2.)
+            loss_mom = math.sqrt((de + mpart)**2. - mpart**2.)
             restored_mom = math.sqrt(momentum["z_mom"]**2. + momentum["x_mom"]**2. + momentum["y_mom"]**2.) + loss_mom
             raw_mass = restored_mom / beta
             final_mass = gamma * raw_mass
 
+            mu = _config["{}m_c_mu".format(detector[0])] * math.e**(-0.5*((final_mass - \
+                 _config["{}m_mu_mu".format(detector[0])]) / _config["{}m_sigma_mu".format(detector[0])])**2)
+            pi = _config["{}m_c_pi".format(detector[0])] * math.e ** (-0.5 * ((final_mass - \
+                 _config["{}m_mu_pi"].format(detector[0])) / _config["{}m_sigma_pi"].format(detector[0]))**2)
+            el = _config["{}m_c_el".format(detector[0])] * math.e**(-0.5*((final_mass - \
+                 _config["{}m_mu_el"].format(detector[0])) / _config["{}m_sigma_el"].format(detector[0]))**2)
+            # print mu, pi, el
+            if mu + pi + el > 0.00001:
+              muon_ratio = mu / (mu + pi + el)
+              pion_ratio = pi / (mu + pi + el)
+              elec_ratio = el / (mu + pi + el)
+
+              if detector == "upstream":
+                i = 1
+              else:
+                i = 2
+              if muon_ratio > _config["particle_selection_ratio"]:
+                pass_cut["Type"][i] = "muon"
+              if pion_ratio > _config["particle_selection_ratio"]:
+                pass_cut["Type"][i] = "pion"
+              if elec_ratio > _config["particle_selection_ratio"]:
+                pass_cut["Type"][i] = "electron"
+
             name  = "Mass_{}".format(detector)
             title = "Mass {}".format(detector)
-            self.o_time.Fill(name, title, final_mass, 600, 0, 300)
+            self.o_mass.Fill(name, title, final_mass, 600, 0, 300)
     return pass_cut
 
 
-            # def Mass_Cut(self, time0, time1, tracks, size):
-            # #dz = 7.64231643643#dz = 7.94231643643
-            # dz = 7.610
-            # t_e = 24.75
-            # m_e = 0.510999
-            # m_m = 105.66
-            # final_mass = []
-            # for t0 in time0:
-            #   for t1 in time1:
-            #     for i in range(size):
-            #       for l in range(len(tracks[i]["track_points"])):
-            #         if tracks[i]["track_points"][l]["station"] == 5 and \
-            #            tracks[i]["track_points"][l]["plane"] == 0:
-            #           track = tracks[i]["track_points"][l]
-            #       time = (t1 - t0)
-            #       beta = t_e/time
-            #       density = .001204
-            #       I = 11.6 * 7.311 / 1000000
-            #
-            #       #new_mass = False
-            #       if beta < 1 and beta > 0:
-            #         gamma = math.sqrt(1.0 - beta**2)
-            #         T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_m)+(m_e/m_m)**2)
-            #         energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
-            #         energy_loss = energy_loss_per_step * dz * 100 * density
-            #
-            #         if energy_loss > 0:
-            #           loss_mom = ((energy_loss + m_m)**2 - m_m**2)**(.5)
-            #           restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
-            #           raw_mass = restored_mom / beta
-            #           final_mass.append(gamma * raw_mass)
-            # for mass in final_mass:
-            #   if abs(mass - 103.22) < 7.8:
-            #     return [True, final_mass]
-            # return [False, final_mass]
+  def Mass_Cut(self, time0, time1, tracks, size):
+    #dz = 7.64231643643#dz = 7.94231643643
+    dz = 7.610
+    t_e = 24.75
+    m_e = 0.510999
+    m_m = 105.66
+    final_mass = []
+    for t0 in time0:
+      for t1 in time1:
+        for i in range(size):
+          for l in range(len(tracks[i]["track_points"])):
+            if tracks[i]["track_points"][l]["station"] == 5 and \
+                            tracks[i]["track_points"][l]["plane"] == 0:
+              track = tracks[i]["track_points"][l]
+          time = (t1 - t0)
+          beta = t_e/time
+          density = .001204
+          I = 11.6 * 7.311 / 1000000
+
+          #new_mass = False
+          if beta < 1 and beta > 0:
+            gamma = math.sqrt(1.0 - beta**2)
+            T_max = 2*m_e*beta**2*gamma**2/(1+(2*gamma*m_e/m_m)+(m_e/m_m)**2)
+            energy_loss_per_step = 0.307075 * (7.311/14.666) / beta**2 * (0.5 * math.log(2.*m_e*beta**2*gamma**2*T_max/I**2) - beta**2)
+            energy_loss = energy_loss_per_step * dz * 100 * density
+
+            if energy_loss > 0:
+              loss_mom = ((energy_loss + m_m)**2 - m_m**2)**(.5)
+              restored_mom = math.sqrt(track["z_mom"]**2 + track["x_mom"]**2 + track["y_mom"]**2) + loss_mom
+              raw_mass = restored_mom / beta
+              final_mass.append(gamma * raw_mass)
+    for mass in final_mass:
+      if abs(mass - 103.22) < 7.8:
+        return [True, final_mass]
+    return [False, final_mass]
 
             #else:
             #new_mass = True
@@ -461,6 +492,7 @@ class Cuts(object):
         return [True, density]
     return[False, density]
 
+
   def EMR_Mass_Test(self, data, pass_cut):
     q1 = 0.007297**(0.5)
     c = .001239842/1000000.0
@@ -565,10 +597,10 @@ class Cuts(object):
       number = 21
       self.o_other.Fill(name, title, number, 22, 0, 22)
 
-    # for i in range(len(data["Mass_Cut"][1])):
-    #   name = "Mass_Plot"
-    #   title = "Mass"
-    #   self.o_time.Fill(name, title, data["Mass_Cut"][1][i], 500, 0, 500)
+    for i in range(len(data["Mass_Cut"][1])):
+      name = "Mass_Plot"
+      title = "Mass"
+      self.o_mass.Fill(name, title, data["Mass_Cut"][1][i], 500, 0, 500)
 
     for i in range(len(data["DTOF_Time"][1])):
       name = "DTime"
@@ -617,51 +649,60 @@ class Cuts(object):
       self.o_time.Fill(name, title, mom, time, \
                       250, 0, 400, 250, 20, 60)
 
-    if data["EMR_Chi2"][2] > -1:
-      name = "EMR_Entire_X_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks X Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], 250, 0, 20000)
-
-      name = "EMR_Entire_Y_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks Y Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][2], 250, 0, 20000)
-
-      name = "Narrow_EMR_Entire_X_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks X Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], 250, 0, 200)
-
-      name = "Narrow_EMR_Entire_Y_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks Y Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][2], 250, 0, 200)
-
-      name = "EMR_Entire_XY_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks XY Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 20000, 500, 0, 20000)
-
-      name = "Graph_EMR_Entire_XY_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks XY Chi2 " + data["Type"][0]
-      col = 1
-      if data["Type"][0] == "muon":
-        col = 2
-      if data["Type"][0] == "pion":
-        col = 4
-      if data["Type"][0] == "electron":
-        col = 8
-      self.o_emr.Graph(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], color = col)
-
-      name = "Narrow_EMR_Entire_XY_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks XY Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 200, 500, 0, 200)
-
-      name = "EMR_Entire_T_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks T Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][3], 250, 0, 20000)
-
-      name = "Narrow_EMR_Entire_T_Ch2_" + data["Type"][0]
-      title = "EMR All Tracks T Chi2 " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Chi2"][3], 250, 0, 200)
-
     if data["EMR_Den"][1] > -1:
-      name = "EMR_Plane_Density_" + data["Type"][0]
-      title = "EMR All Plane Density " + data["Type"][0]
-      self.o_emr.Fill(name, title, data["EMR_Den"][1], 150, 0, 1.5)
+      name = "EMR_MDensity_" + data["Type"][0]
+      title = "EMR Plane Density " + data["Type"][0]
+      self.o_emr.Fill(name, title, data["EMR_Den"][1], 200, 0, 1.2)
+
+      name = "EMR_Ch2_" + data["Type"][0]
+      title = "EMR Track Chi2" + data["Type"][0]
+      self.o_emr.Fill(name, title, data["EMR_Chi2"][3], 100, 0, 200)
+
+    # if data["EMR_Chi2"][2] > -1:
+    #   name = "EMR_Entire_X_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks X Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][1], 250, 0, 20000)
+    #
+    #   name = "EMR_Entire_Y_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks Y Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][2], 250, 0, 20000)
+    #
+    #   name = "Narrow_EMR_Entire_X_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks X Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][1], 250, 0, 200)
+    #
+    #   name = "Narrow_EMR_Entire_Y_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks Y Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][2], 250, 0, 200)
+    #
+    #   name = "EMR_Entire_XY_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks XY Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 20000, 500, 0, 20000)
+    #
+    #   name = "Graph_EMR_Entire_XY_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks XY Chi2 " + data["Type"][0]
+    #   col = 1
+    #   if data["Type"][0] == "muon":
+    #     col = 2
+    #   if data["Type"][0] == "pion":
+    #     col = 4
+    #   if data["Type"][0] == "electron":
+    #     col = 8
+    #   self.o_emr.Graph(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], color = col)
+    #
+    #   name = "Narrow_EMR_Entire_XY_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks XY Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][1], data["EMR_Chi2"][2], 250, 0, 200, 500, 0, 200)
+    #
+    #   name = "EMR_Entire_T_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks T Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][3], 250, 0, 20000)
+    #
+    #   name = "Narrow_EMR_Entire_T_Ch2_" + data["Type"][0]
+    #   title = "EMR All Tracks T Chi2 " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Chi2"][3], 250, 0, 200)
+    #
+    # if data["EMR_Den"][1] > -1:
+    #   name = "EMR_Plane_Density_" + data["Type"][0]
+    #   title = "EMR All Plane Density " + data["Type"][0]
+    #   self.o_emr.Fill(name, title, data["EMR_Den"][1], 150, 0, 1.5)

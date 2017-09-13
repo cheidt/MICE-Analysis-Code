@@ -64,20 +64,23 @@ class Process:
           _output.Message("No data in event")
           continue
 
-          # Fills the ROOT containers with data from the MAUS files
+  # Fills the ROOT containers with data from the MAUS files
         self.Process_Event()
+  # Final calculations and writing results
     if _config["ignore_emittance"] == False:
       count = self.cuts.Out_Count()
-      print "\nTotal Number of Events / Passed"
-      print count["Total"], " / ", count["Pass"]
-      print "Total Number of Muon Events / Passed"
-      print count["UMTot"], " / ", count["MPass"]
-      print "Total Number of Pion Events / Passed"
-      print count["UPTot"], " / ", count["PPass"]
-      print "Total Number of Electron Events / Passed"
-      print count["UETot"], " / ", count["EPass"]
-      print "Total Number of Unknown Events / Passed"
-      print count["UUTot"], " / ", count["UPass"], "\n"
+      # print "\nTotal Number of Events / Passed"
+      # print count["Total"], " / ", count["Pass"]
+      # print "Total Number of Muon Events / Passed"
+      # print count["UMTot"], " / ", count["MPass"]
+      # print "Total Number of Pion Events / Passed"
+      # print count["UPTot"], " / ", count["PPass"]
+      # print "Total Number of Electron Events / Passed"
+      # print count["UETot"], " / ", count["EPass"]
+      # print "Total Number of Unknown Events / Passed"
+      # print count["UUTot"], " / ", count["UPass"], "\n"
+      print "EMR Only Fails and Total Passes:"
+      print "Chi Squ:  ", count["Test_Chi"], "Density:  ", count["Test_Den"], "Passed:  ", count["Pass"]
       self.emittance.Emittance()
     self.Output()
     raw_input("Press Enter to Exit")

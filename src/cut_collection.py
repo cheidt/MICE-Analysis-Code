@@ -14,7 +14,8 @@ class Cuts(object):
     self.o_mass  = _output.Output("Mass")
     self.count   = {"Pass":0, "Total":0, "UMTot": 0, "UPTot": 0, "UETot": 0, "UUTot": 0, \
                     "MPass": 0, "PPass": 0, "EPass": 0, "UPass": 0, "TEMR": 0, "MMSDR": 0, "PMSDR": 0, \
-                    "EMSDR": 0, "UMSDR": 0, "DMTot": 0, "DPTot": 0, "DETot": 0, "DUTot": 0}
+                    "EMSDR": 0, "UMSDR": 0, "DMTot": 0, "DPTot": 0, "DETot": 0, "DUTot": 0, \
+                    "EMR_Chi": 0, "EMR_Den": 0, "Test_Chi": 0, "Test_Den": 0}
 
   def Write(self):
     # self.o_time.Gaus_Fit(27.0, 29.0, "DTime")
@@ -211,10 +212,12 @@ class Cuts(object):
         if track["type"] == "mother":
           pass_cut["EMR_Den"][1]  = track["mden_ratio"]
           pass_cut["EMR_Chi2"][3] = track["chi2"]
-          if track["mden_ratio"] > .9:
+          if track["mden_ratio"] > _config["density_cut"]:
             pass_cut["EMR_Den"][0] = True
-          if track["chi2"] < 5:
+            self.count["EMR_Den"] += 1
+          if track["chi2"] < _config["chi_cut"]:
             pass_cut["EMR_Chi2"][0] = True
+            self.count["EMR_Chi"] += 1
       pass_cut["EMR_Mass"] = self.EMR_Mass_Test(data, pass_cut)
       # for track in data:
       #   name = "EMR_Time_" + pass_cut["Type"][0]
@@ -251,7 +254,18 @@ class Cuts(object):
       pass_cut["Only_One_All"] = True
 
     if pass_cut["Only_One_All"] and pass_cut["UTOF_Time"][0] and pass_cut["UTracker_Scraping"][0] and \
-       pass_cut["DTracker_Scraping"][0] and pass_cut["Mom_Cut"][0][0] and pass_cut["Mom_Cut"][1][0]:
+       pass_cut["DTracker_Scraping"][0] and pass_cut["Mom_Cut"][0][0] and pass_cut["Mom_Cut"][1][0] and not \
+       pass_cut["EMR_Chi2"][0]:
+      self.count["Test_Chi"] += 1
+
+    if pass_cut["Only_One_All"] and pass_cut["UTOF_Time"][0] and pass_cut["UTracker_Scraping"][0] and \
+       pass_cut["DTracker_Scraping"][0] and pass_cut["Mom_Cut"][0][0] and pass_cut["Mom_Cut"][1][0] and not \
+       pass_cut["EMR_Den"][0]:
+      self.count["Test_Den"] += 1
+
+    if pass_cut["Only_One_All"] and pass_cut["UTOF_Time"][0] and pass_cut["UTracker_Scraping"][0] and \
+       pass_cut["DTracker_Scraping"][0] and pass_cut["Mom_Cut"][0][0] and pass_cut["Mom_Cut"][1][0] and \
+       pass_cut["EMR_Chi2"][0] and pass_cut["EMR_Den"][0]:
       #and pass_cut["Mass_Cut"][0]:
       self.count["Pass"] += 1
       if pass_cut["Type"][0] == "muon":
@@ -266,61 +280,97 @@ class Cuts(object):
 
     return pass_cut
 
-
+#########################################################################################
+# Uses TOF and Tracker data to reconstruct particle species
+#########################################################################################
   def Check_Mass(self, data, pass_cut):
     me = _config["me"]; mm = _config["mm"]; mp = _config["mp"]; density = _config["density"]
     an = _config["atomic_number"]; am = _config["atomic_mass"]; K = _config["K"]
     I  = _config["mean_excitation"] * an
-    dz = 4.80
-    if pass_cut["Only_One_All"] and not pass_cut["Type"][0] == "unknown":
+    dz = 4.85; umass = 0; dmass = 0
+    if pass_cut["Only_One_All"]:
+#########################################################################################
+# Downstream mass calculation.  Assumes a linear symmetric de-acceleration approximation
+#  In this case average beta and average momentum is in the center.  Uses TOF1 and
+#  TOF2 to determine average beta and TrackerUS1P0 and TrackerDS1P0 to determine average
+#  momentum
+#########################################################################################
+      ptime = pass_cut["DTOF_Time"][1][0]
+      ctime = _config["downstream_timing"]
+      beta = ctime/ptime
+      if beta > 0 and beta < 1.0:
+        gamma = 1.0/math.sqrt(1 - beta**2)
+        for point in data["tracker_tracks"]["downstream"][0]["track_points"]:
+          if point["plane"] == 0 and point["station"] == 1:
+            mom2 = math.sqrt(point["z_mom"]**2 + point["x_mom"]**2 + point["y_mom"]**2)
+        for point in data["tracker_tracks"]["upstream"][0]["track_points"]:
+          if point["plane"] == 0 and point["station"] == 1:
+            mom1 = math.sqrt(point["z_mom"] ** 2 + point["x_mom"] ** 2 + point["y_mom"] ** 2)
+        momentum = (mom2 + mom1) / 2
+        dmass = momentum / (beta * gamma)
+        name = "Mass_downstream"
+        title = "Mass Downstream"
+        self.o_mass.Fill(name, title, dmass, 600, 0, 300)
+
+      ptime = pass_cut["UTOF_Time"][1][0]
+      ctime = _config["upstream_timing"]
+      beta  = ctime/ptime
+      if beta > 0 and beta < 1:
+        for point in data["tracker_tracks"]["upstream"][0]["track_points"]:
+          if point["plane"] == 0 and point["station"] == 5:
+            momentum = point
+        gamma = 1.0/math.sqrt(1. - beta**2.)
+        mpart = mm
+        T_max = 2. * me * beta**2. * gamma**2. / (1.+(2.*gamma * me / mpart) + (me / mpart)**2.)
+        dedl = K * (an / am) / beta**2. * (0.5*math.log(2.*me * beta**2. * gamma**2. * T_max / I**2.) - beta**2)
+        de = dedl * dz * 100 * density
+
+        if de > 0:
+          loss_mom = math.sqrt((de + mpart)**2. - mpart**2.)
+          restored_mom = math.sqrt(momentum["z_mom"]**2. + momentum["x_mom"]**2. + momentum["y_mom"]**2.) + loss_mom
+          umass = restored_mom / (beta * gamma)
+          name = "Mass_upstream"
+          title = "Mass Upstream"
+          self.o_mass.Fill(name, title, umass, 600, 0, 300)
+          #
+          # print "Energy Loss: ", de
+          # print "Beta:        ", beta
+          # print "Mass:        ", umass, "\n\n"
+
+
+    if not umass == 0 and dmass == 0:
       for detector in ["upstream", "downstream"]:
-        key = str(detector[0].capitalize() + "TOF_Time")
-        ptime = pass_cut[key][1][0]
-        ctime = _config["{}_timing".format(detector)]
-        beta  = ctime/ptime
+        if detector == "upstream":
+          mass = umass
+        else:
+          mass = dmass
+        mu = _config["{}_c_mu".format(detector[0].capitalize())] * math.e**(-0.5*((mass - \
+             _config["{}_mu_mu".format(detector[0].capitalize())]) / \
+             _config["{}_sigma_mu".format(detector[0]).capitalize()])**2)
+        pi = _config["{}_c_pi".format(detector[0].capitalize())] * math.e ** (-0.5 * ((mass - \
+             _config["{}_mu_pi".format(detector[0].capitalize())]) / \
+             _config["{}_sigma_pi".format(detector[0].capitalize())])**2)
+        el = _config["{}_c_el".format(detector[0].capitalize())] * math.e**(-0.5*((mass - \
+             _config["{}_mu_el".format(detector[0].capitalize())]) / \
+             _config["{}_sigma_el".format(detector[0].capitalize())])**2)
 
-        if beta > 0 and beta < 1:
-          for point in data["tracker_tracks"][detector][0]["track_points"]:
-            if point["plane"] == 0 and point["station"] == 5:
-              momentum = point
-          gamma = math.sqrt(1. - beta ** 2.)
-          mpart = mm
-          T_max = 2. * me * beta**2. * gamma**2. / (1.+(2.*gamma * me / mpart) + (me / mpart)**2.)
-          dedl = K * (an / am) / beta**2. * (0.5*math.log(2.*me * beta**2. * gamma**2. * T_max / I**2.) - beta**2)
-          de = dedl * dz * 100 * density
+        if mu + pi + el > 0.00001:
+          muon_ratio = mu / (mu + pi + el)
+          pion_ratio = pi / (mu + pi + el)
+          elec_ratio = el / (mu + pi + el)
 
-          if de > 0:
-            loss_mom = math.sqrt((de + mpart)**2. - mpart**2.)
-            restored_mom = math.sqrt(momentum["z_mom"]**2. + momentum["x_mom"]**2. + momentum["y_mom"]**2.) + loss_mom
-            raw_mass = restored_mom / beta
-            final_mass = gamma * raw_mass
+          if detector == "upstream":
+            i = 1
+          else:
+            i = 2
+          if muon_ratio > _config["particle_selection_ratio"]:
+            pass_cut["Type"][i] = "muon"
+          if pion_ratio > _config["particle_selection_ratio"]:
+            pass_cut["Type"][i] = "pion"
+          if elec_ratio > _config["particle_selection_ratio"]:
+            pass_cut["Type"][i] = "electron"
 
-            mu = _config["{}m_c_mu".format(detector[0])] * math.e**(-0.5*((final_mass - \
-                 _config["{}m_mu_mu".format(detector[0])]) / _config["{}m_sigma_mu".format(detector[0])])**2)
-            pi = _config["{}m_c_pi".format(detector[0])] * math.e ** (-0.5 * ((final_mass - \
-                 _config["{}m_mu_pi"].format(detector[0])) / _config["{}m_sigma_pi"].format(detector[0]))**2)
-            el = _config["{}m_c_el".format(detector[0])] * math.e**(-0.5*((final_mass - \
-                 _config["{}m_mu_el"].format(detector[0])) / _config["{}m_sigma_el"].format(detector[0]))**2)
-            # print mu, pi, el
-            if mu + pi + el > 0.00001:
-              muon_ratio = mu / (mu + pi + el)
-              pion_ratio = pi / (mu + pi + el)
-              elec_ratio = el / (mu + pi + el)
 
-              if detector == "upstream":
-                i = 1
-              else:
-                i = 2
-              if muon_ratio > _config["particle_selection_ratio"]:
-                pass_cut["Type"][i] = "muon"
-              if pion_ratio > _config["particle_selection_ratio"]:
-                pass_cut["Type"][i] = "pion"
-              if elec_ratio > _config["particle_selection_ratio"]:
-                pass_cut["Type"][i] = "electron"
-
-            name  = "Mass_{}".format(detector)
-            title = "Mass {}".format(detector)
-            self.o_mass.Fill(name, title, final_mass, 600, 0, 300)
     return pass_cut
 
 
@@ -430,7 +480,7 @@ class Cuts(object):
       xo      = prtrack["circle_x0"]
       yo      = prtrack["circle_y0"]
       length  = math.sqrt(xo**2 + yo**2) + radius
-      if length < 150.0:
+      if length < 130.0:
         return [True, length]
     return [False, length]
 

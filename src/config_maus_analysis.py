@@ -44,7 +44,7 @@ check_config = {
 # Maus data
 # #"data_directory": '/media/chris/Research/data/6-240/',
 #"data_directory": '/home/chris/work/simulation/simple_beam/',
-"data_directory": '/media/chris/Research/data/MAUS-2.7.0/6-240/',
+  "data_directory": '/media/chris/Research/data/MAUS-2.7.0/6-240/',
 "file_name": ["08873_recon.root", "08874_recon.root", "08875_recon.root"],#, \
 #              "08877_recon.root", "08878_recon.root", "08879_recon.root", \
 #              "08880_recon.root", "08881_recon.root", "08882_recon.root"],
@@ -109,8 +109,8 @@ cut_config = {
 
 "particle_selection_ratio": 0.8,
 
-"upstream_timing":24.75,            #ns between TOF0 and TOF1 for fastest particle
-"downstream_timing":27.20,          #ns between TOF1 and TOF2 for fastest particle
+"upstream_timing":25.1, #24.75,            #ns between TOF0 and TOF1 for fastest particle
+"downstream_timing":27.7, #27.20,          #ns between TOF1 and TOF2 for fastest particle
 "me":0.51099,                       #mass of electron in MeV
 "mm":105.66,                        #mass of muon in MeV
 "mp":139.57,                        #mass of pion in MeV
@@ -119,4 +119,6 @@ cut_config = {
 "atomic_number":7.311,              #atomic number of air
 "atomic_mass":14.666,               #atomic mass of air
 "K":0.307075,                       #MeV g^-1 cm^2 from PDG
+"density_cut":0.91,                 #EMR plane density cut from EMR paper
+"chi_cut":1.6,                      #EMR chi squared cut from EMR paper
 }
